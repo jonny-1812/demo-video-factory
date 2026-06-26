@@ -68,7 +68,7 @@ const ctaText = (bg: string) => (lum(bg) > 0.6 ? '#0b0d11' : '#ffffff')
 // (its real screens, design language, colors) and animates its core workflow.
 export interface ProductUI {
   // Only kinds with a real recreation in PRODUCT_UI — keep this in sync with that map.
-  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform' | 'chat' | 'dashboard' | 'editor' | 'checkout'
+  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform' | 'chat' | 'dashboard' | 'editor' | 'checkout' | 'voicegen'
   data?: Record<string, unknown>
 }
 
@@ -1147,7 +1147,70 @@ export const CheckoutUI: React.FC<{ brief: Brief }> = ({ brief }) => {
   )
 }
 
-const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI, chat: ChatUI, dashboard: DashboardUI, editor: EditorUI, checkout: CheckoutUI }
+// VOICE GEN / AUDIO — type a line → pick a voice → Generate → a waveform renders and
+// plays. The archetype for TTS, voice agents, music, dubbing, podcast, audio tools.
+export const VoiceGenUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary, surf = b.isDark ? b.surface : '#ffffff', ink = b.isDark ? b.text : '#0a0a0a', mut = b.muted
+  const line = b.isDark ? 'rgba(255,255,255,0.09)' : '#ececec', rail = b.isDark ? 'rgba(255,255,255,0.03)' : '#fafafa'
+  const acc = lum(pr) < 0.18 ? '#0a0a0a' : pr // pure-black brands stay black; the played waveform reads
+  const text = (d.text as string) || 'In a world where every voice can be heard, your story finally sounds like you.'
+  const voices = (d.voices as string[]) || ['Rachel', 'Adam', 'Bella', 'Antoni']
+  const lang = (d.lang as string) || '70+ languages'
+  const nav = ['Home', 'Voices', 'Studio', 'Dubbing', 'Music']
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  const typed = text.slice(0, Math.max(0, Math.min(text.length, Math.floor((frame - 10) / 0.8))))
+  const GEN = Math.max(10 + text.length * 0.8 + 4, 70)
+  const generating = frame >= GEN && frame < GEN + 24
+  const playing = frame >= GEN + 24
+  const playStart = GEN + 24
+  const prog = playing ? interpolate(frame, [playStart, playStart + 150], [0, 1], clamp) : 0
+  const dur = 8, cur = (prog * dur)
+  const mmss = (s: number) => `0:0${Math.min(9, Math.floor(s))}`
+  const N = 56
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 32%, ${withAlpha(pr, b.isDark ? '20' : '14')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef0f3'} 64%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 44, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
+      <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 1560, height: 720, background: surf, borderRadius: 18, boxShadow: '0 50px 120px rgba(20,20,28,0.34)', overflow: 'hidden', display: 'flex', border: `1px solid ${line}` }}>
+        {/* mini product sidebar (realism) */}
+        <div style={{ width: 220, background: rail, borderRight: `1px solid ${line}`, padding: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: ink, fontSize: 17, fontWeight: 800, fontFamily: font(brief.fonts.heading), marginBottom: 22 }}><span style={{ letterSpacing: -1 }}>‖</span>{brief.company}</div>
+          {nav.map((n, i) => <div key={i} style={{ padding: '10px 12px', borderRadius: 9, marginBottom: 4, color: i === 1 ? ink : mut, background: i === 1 ? (b.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0') : 'transparent', fontSize: 15, fontWeight: i === 1 ? 700 : 500, opacity: interpolate(frame, [8 + i * 4, 20 + i * 4], [0, 1], clamp) }}>{n}</div>)}
+        </div>
+        {/* composer */}
+        <div style={{ flex: 1, padding: '40px 56px', position: 'relative' }}>
+          <div style={{ color: ink, fontSize: 24, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>Text to Speech</div>
+          {/* voice chips */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            {voices.map((v, i) => <div key={i} style={{ opacity: interpolate(frame, [18 + i * 5, 30 + i * 5], [0, 1], clamp), display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 22, border: `1.5px solid ${i === 0 ? acc : line}`, background: i === 0 ? (b.isDark ? withAlpha(acc, '1a') : '#f5f5f5') : surf, color: i === 0 ? ink : mut, fontSize: 14, fontWeight: 600 }}><span style={{ width: 18, height: 18, borderRadius: '50%', background: ['#d97757', '#5b8def', '#cf6bdf', '#3aa675'][i % 4] }} />{v}</div>)}
+            <div style={{ display: 'flex', alignItems: 'center', color: mut, fontSize: 13, marginLeft: 6 }}>+ 5,000 voices</div>
+          </div>
+          {/* text box */}
+          <div style={{ marginTop: 18, border: `1.5px solid ${frame < GEN ? acc : line}`, borderRadius: 14, padding: '20px 22px', minHeight: 150, color: ink, fontSize: 21, lineHeight: 1.5 }}>{typed}{frame < GEN && <span style={{ opacity: Math.floor(frame / 8) % 2 ? 1 : 0, color: acc }}>|</span>}</div>
+          {/* generate button */}
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ background: acc, color: ctaText(acc), borderRadius: 12, padding: '14px 28px', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', gap: 9 }}>{generating ? <><span style={{ width: 16, height: 16, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: ctaText(acc), display: 'inline-block', transform: `rotate(${frame * 16}deg)` }} />Generating…</> : '▷ Generate speech'}</div>
+            <div style={{ color: mut, fontSize: 14 }}>{lang}</div>
+          </div>
+          {/* audio player with playing waveform */}
+          {playing && <div style={{ marginTop: 26, opacity: interpolate(frame, [playStart, playStart + 12], [0, 1], clamp), background: b.isDark ? 'rgba(255,255,255,0.04)' : '#fafafa', border: `1px solid ${line}`, borderRadius: 14, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: acc, color: ctaText(acc), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>❚❚</div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, height: 48 }}>
+              {Array.from({ length: N }, (_, i) => { const h = 18 + Math.abs(Math.sin(i * 0.5) * Math.cos(i * 0.23)) * 78; const played = i / N <= prog; return <div key={i} style={{ flex: 1, height: `${h * (played ? 1 : 0.75)}%`, background: played ? acc : (b.isDark ? 'rgba(255,255,255,0.18)' : '#d4d4d4'), borderRadius: 2 }} /> })}
+            </div>
+            <div style={{ color: mut, fontSize: 14, fontWeight: 600, flexShrink: 0, minWidth: 78, textAlign: 'right' }}>{mmss(cur)} / 0:0{dur}</div>
+          </div>}
+        </div>
+      </div>
+      {frame >= playStart + 30 && <div style={{ position: 'absolute', bottom: 64, left: '50%', transform: 'translateX(-50%)', opacity: interpolate(frame, [playStart + 30, playStart + 46], [0, 1], clamp), background: b.isDark ? '#0e1014' : '#0a0a0a', color: '#fff', fontSize: 15, fontWeight: 700, padding: '11px 20px', borderRadius: 11, display: 'flex', gap: 9 }}><span>🔊</span>{(d.badge as string) || 'Lifelike speech in 0.4s · 70+ languages'}</div>}
+      {frame < GEN + 4 && <Cursor x={interpolate(frame, [GEN - 24, GEN], [700, 470], clamp)} y={interpolate(frame, [GEN - 24, GEN], [560, 690], clamp)} clickFrames={[GEN]} frame={frame} color={acc} />}
+    </AbsoluteFill>
+  )
+}
+
+const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI, chat: ChatUI, dashboard: DashboardUI, editor: EditorUI, checkout: CheckoutUI, voicegen: VoiceGenUI }
 export const ProductUIScene: React.FC<{ brief: Brief }> = ({ brief }) => { const k = brief.wow.productUI?.kind || ''; const V = PRODUCT_UI[k]; return V ? <V brief={brief} /> : <WowScene brief={brief} /> }
 
 // ── Layout dispatchers ───────────────────────────────────────────────────────
