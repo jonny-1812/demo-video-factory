@@ -666,13 +666,21 @@ export const SchedulingUI: React.FC<{ brief: Brief }> = ({ brief }) => {
 // Sourced → Screening → Interview → Offer → Hired. Themed to the product's brand.
 export const PipelineUI: React.FC<{ brief: Brief }> = ({ brief }) => {
   const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
-  const d = (brief.wow.productUI?.data || {}) as Record<string, string>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = (brief.wow.productUI?.data || {}) as Record<string, any>
   const pr = b.primary, surf = '#ffffff', ink = '#221f1b', mut = '#8b8378'
   const head = '#1a1715', cream = '#f6f4f0', lane = '#f3efe9', line = '#eae5dd'
   const agent = d.agent || 'Vesper', user = d.user || 'Sara K.', org = brief.company
-  const COLS = ['Sourced', 'Screening', 'Interview', 'Offer', 'Hired']
+  // data-driven so this board works for recruiting (default) AND CS / sales / support / ops
+  const COLS: string[] = (d.cols && d.cols.length ? d.cols : ['Sourced', 'Screening', 'Interview', 'Offer', 'Hired'])
+  const NC = COLS.length
   const STAGE_C = [['#dde8ff', '#2b59c3'], ['#ece0ff', '#6b3fc0'], ['#ffeac9', '#b07016'], ['#d6f5e3', '#1f8f57'], ['#1f9d57', '#ffffff']]
-  const CANDS = [
+  const sc_ = (i: number) => STAGE_C[i === NC - 1 ? 4 : Math.min(i, 3)]
+  const nav: string[] = d.nav || ['Candidates', 'Jobs', 'Sourcing', 'Interviews']
+  const title: string = d.title || 'Candidates'
+  const doneVerb: string = d.doneVerb || 'Hired'
+  type Row = { init: string; name: string; role: string; score: number | string; target: number; start: number }
+  const CANDS: Row[] = (d.rows && d.rows.length ? d.rows : [
     { init: 'RK', name: 'Ravi Kapoor', role: 'Staff Designer', score: 92, target: 4, start: 10 },
     { init: 'NO', name: 'Naomi Okafor', role: 'Sr. Designer', score: 88, target: 3, start: 30 },
     { init: 'SA', name: 'Simone Achebe', role: 'QA Manager', score: 90, target: 3, start: 50 },
@@ -680,19 +688,21 @@ export const PipelineUI: React.FC<{ brief: Brief }> = ({ brief }) => {
     { init: 'AM', name: 'Aria Mendez', role: 'Designer', score: 76, target: 2, start: 98 },
     { init: 'PM', name: 'Paula Marchetti', role: 'Design Lead', score: 82, target: 1, start: 122 },
     { init: 'DR', name: 'Diego Romero', role: 'Product Designer', score: 71, target: 1, start: 150 },
-  ]
+  ])
   const STEP = 38
   const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
   const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
   const eio = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
   const W = 1640, H = 770, PADX = 26, GAP = 12
-  const colW = Math.round((W - PADX * 2 - GAP * 4) / 5)
+  const colW = Math.round((W - PADX * 2 - GAP * (NC - 1)) / NC)
   const colX = (i: number) => PADX + i * (colW + GAP)
-  const fcol = (c: typeof CANDS[0]) => Math.min(c.target, Math.max(0, (frame - c.start) / STEP))
+  const fcol = (c: Row) => Math.min(c.target, Math.max(0, (frame - c.start) / STEP))
   const counts = COLS.map((_, i) => CANDS.filter(c => frame >= c.start && Math.round(fcol(c)) === i).length)
   const sourced = Math.round(interpolate(frame, [12, 240], [128, 503], clamp))
-  const heroFc = fcol(CANDS[0]); const hired = heroFc >= 4
-  const badgeOp = hired ? interpolate(frame, [168, 188], [0, 1], clamp) : 0
+  const stats: [string, string][] = d.stats || [[`${sourced}`, 'sourced'], ['78%', 'of weekly target'], ['3', 'scorecards ready']]
+  const hero = CANDS[0]; const heroArrive = hero.start + hero.target * STEP
+  const done = fcol(hero) >= NC - 1 && hero.target === NC - 1
+  const badgeOp = done ? interpolate(frame, [heroArrive, heroArrive + 20], [0, 1], clamp) : 0
   const boardTop = 168, rowH = 78
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 30%, ${withAlpha(pr, '1f')} 0%, ${cream} 62%)`, fontFamily: font(brief.fonts.body) }}>
@@ -703,7 +713,7 @@ export const PipelineUI: React.FC<{ brief: Brief }> = ({ brief }) => {
         {/* app header */}
         <div style={{ height: 56, background: head, display: 'flex', alignItems: 'center', padding: '0 22px', gap: 26 }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: pr, color: ctaText(pr), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 17 }}>{org[0]}</div>
-          {['Candidates', 'Jobs', 'Sourcing', 'Interviews'].map((t, i) => <div key={i} style={{ color: i === 0 ? '#fff' : '#9a9089', fontSize: 15, fontWeight: i === 0 ? 700 : 500 }}>{t}</div>)}
+          {nav.map((t, i) => <div key={i} style={{ color: i === 0 ? '#fff' : '#9a9089', fontSize: 15, fontWeight: i === 0 ? 700 : 500 }}>{t}</div>)}
           <div style={{ flex: 1 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cde6d2', fontSize: 13, fontWeight: 600 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d27b', boxShadow: `0 0 ${8 + Math.sin(frame / 6) * 4}px #34d27b` }} />{agent} live · 24/7</div>
           <div style={{ background: pr, color: ctaText(pr), fontSize: 14, fontWeight: 700, padding: '7px 14px', borderRadius: 9 }}>+ Add</div>
@@ -711,12 +721,12 @@ export const PipelineUI: React.FC<{ brief: Brief }> = ({ brief }) => {
         </div>
         {/* page title + live stat strip */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '18px 26px 12px', gap: 18 }}>
-          <div style={{ color: ink, fontSize: 26, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>Candidates</div>
+          <div style={{ color: ink, fontSize: 26, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>{title}</div>
           <div style={{ flex: 1 }} />
-          {[[`${sourced}`, 'sourced'], ['78%', 'of weekly target'], ['3', 'scorecards ready']].map((s, i) => (
+          {stats.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 7, opacity: interpolate(frame, [8, 26], [0, 1], clamp) }}>
               <span style={{ color: pr, fontSize: 20, fontWeight: 800 }}>{s[0]}</span><span style={{ color: mut, fontSize: 13 }}>{s[1]}</span>
-              {i < 2 && <span style={{ color: line, marginLeft: 10 }}>|</span>}
+              {i < stats.length - 1 && <span style={{ color: line, marginLeft: 10 }}>|</span>}
             </div>
           ))}
         </div>
@@ -724,7 +734,7 @@ export const PipelineUI: React.FC<{ brief: Brief }> = ({ brief }) => {
         <div style={{ position: 'absolute', top: 112, left: 0, width: '100%', height: 44 }}>
           {COLS.map((c, i) => (
             <div key={i} style={{ position: 'absolute', left: colX(i), width: colW, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px' }}>
-              <span style={{ width: 9, height: 9, borderRadius: '50%', background: STAGE_C[i][i === 4 ? 0 : 1] }} />
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: sc_(i)[i === NC - 1 ? 0 : 1] }} />
               <span style={{ color: ink, fontSize: 14, fontWeight: 700, letterSpacing: 0.3 }}>{c}</span>
               <span style={{ background: lane, color: mut, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '1px 8px' }}>{counts[i]}</span>
             </div>
@@ -737,24 +747,24 @@ export const PipelineUI: React.FC<{ brief: Brief }> = ({ brief }) => {
           if (frame < c.start) return null
           const fc = fcol(c); const col = Math.floor(fc); const frac = fc - col; const next = Math.min(col + 1, c.target)
           const x = colX(col) + (colX(next) - colX(col)) * eio(frac)
-          const stage = Math.round(fc); const sc = STAGE_C[stage]
+          const stage = Math.round(fc); const sc = sc_(stage)
           const op = interpolate(frame, [c.start, c.start + 10], [0, 1], clamp)
           const pop = spring({ frame: frame - c.start, fps, config: { damping: 14, stiffness: 120 }, from: 0.8, to: 1 })
-          const isHired = c.target === 4 && fc >= 4
+          const isDone = c.target === NC - 1 && fc >= NC - 1
           return (
-            <div key={r} style={{ position: 'absolute', top: boardTop + r * rowH, left: x + 8, width: colW - 16, height: rowH - 12, background: surf, border: `1px solid ${isHired ? '#1f9d57' : line}`, boxShadow: isHired ? '0 8px 26px rgba(31,157,87,0.28)' : '0 4px 14px rgba(40,28,18,0.07)', borderRadius: 11, opacity: op, transform: `scale(${pop})`, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
+            <div key={r} style={{ position: 'absolute', top: boardTop + r * rowH, left: x + 8, width: colW - 16, height: rowH - 12, background: surf, border: `1px solid ${isDone ? '#1f9d57' : line}`, boxShadow: isDone ? '0 8px 26px rgba(31,157,87,0.28)' : '0 4px 14px rgba(40,28,18,0.07)', borderRadius: 11, opacity: op, transform: `scale(${pop})`, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
               <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: withAlpha(pr, '22'), color: pr, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>{c.init}</div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ color: ink, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
                 <div style={{ color: mut, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.role}</div>
               </div>
-              {stage >= 1 && <div style={{ color: c.score >= 85 ? '#1f8f57' : ink, fontSize: 14, fontWeight: 800, opacity: interpolate(frame, [c.start + STEP, c.start + STEP + 14], [0, 1], clamp) }}>{c.score}</div>}
-              <div style={{ background: sc[0], color: sc[1], fontSize: 11, fontWeight: 700, padding: '4px 9px', borderRadius: 20, whiteSpace: 'nowrap' }}>{isHired ? '✓ Hired' : COLS[stage]}</div>
+              {stage >= 1 && c.score !== '' && <div style={{ color: typeof c.score === 'number' && c.score >= 85 ? '#1f8f57' : ink, fontSize: 14, fontWeight: 800, opacity: interpolate(frame, [c.start + STEP, c.start + STEP + 14], [0, 1], clamp) }}>{c.score}</div>}
+              <div style={{ background: sc[0], color: sc[1], fontSize: 11, fontWeight: 700, padding: '4px 9px', borderRadius: 20, whiteSpace: 'nowrap' }}>{isDone ? '✓ ' + doneVerb : COLS[stage]}</div>
             </div>
           )
         })}
         {/* hired badge */}
-        {badgeOp > 0 && <div style={{ position: 'absolute', bottom: 26, left: '50%', transform: `translateX(-50%) scale(${interpolate(frame, [168, 186], [0.85, 1], clamp)})`, opacity: badgeOp, background: head, color: '#fff', fontSize: 18, fontWeight: 800, padding: '14px 26px', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ color: '#34d27b', fontSize: 20 }}>✓</span>{d.badge || `Hired in 9 days — ${agent} did the busywork`}</div>}
+        {badgeOp > 0 && <div style={{ position: 'absolute', bottom: 26, left: '50%', transform: `translateX(-50%) scale(${interpolate(frame, [heroArrive, heroArrive + 18], [0.85, 1], clamp)})`, opacity: badgeOp, background: head, color: '#fff', fontSize: 18, fontWeight: 800, padding: '14px 26px', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ color: '#34d27b', fontSize: 20 }}>✓</span>{d.badge || `Hired in 9 days — ${agent} did the busywork`}</div>}
       </div>
     </AbsoluteFill>
   )
