@@ -55,8 +55,14 @@ function pickMood(slug: string): { mood: Mood; name: string } {
   return { mood: MOODS[name] || MOODS.UPLIFT, name }
 }
 
-export function generateMusic(slug: string, durationSec = 38): string {
-  const { mood: M0 } = pickMood(slug)
+// Resolve the mood: an explicit user choice wins; otherwise auto-pick from the brief.
+function resolveMood(slug: string, override?: string): { mood: Mood; name: string } {
+  if (override && override.toLowerCase() !== 'auto' && MOODS[override.toUpperCase()]) return { mood: MOODS[override.toUpperCase()], name: override.toUpperCase() }
+  return pickMood(slug)
+}
+
+export function generateMusic(slug: string, durationSec = 38, moodOverride?: string): string {
+  const { mood: M0 } = resolveMood(slug, moodOverride)
   const rng = mulberry(seedFrom(slug))
   // per-seed variation: transpose key, jitter tempo, rotate progression, swing, lead timbre
   const rootShift = [0, 2, -3, 5, -5, 3, -1][Math.floor(rng() * 7) % 7]
@@ -165,8 +171,10 @@ export function generateMusic(slug: string, durationSec = 38): string {
 
 if (process.argv[1] && process.argv[1].includes('music')) {
   const slug = process.argv[2]; const dur = process.argv[3] ? parseFloat(process.argv[3]) : 38
-  if (!slug) { console.error('Usage: npx tsx agent/music.ts <slug> [durationSec]'); process.exit(1) }
-  const { name } = pickMood(slug)
-  const out = generateMusic(slug, dur)
+  const moodArg = process.argv[4] // auto (default) | uplift|electronic|corporate|cinematic|lofi|anthem | none
+  if (!slug) { console.error('Usage: npx tsx agent/music.ts <slug> [durationSec] [mood|auto|none]'); process.exit(1) }
+  if (moodArg && moodArg.toLowerCase() === 'none') { console.log('✓ Music: none (video will be silent)'); process.exit(0) }
+  const { name } = resolveMood(slug, moodArg)
+  const out = generateMusic(slug, dur, moodArg)
   console.log(`✓ Custom soundtrack for "${slug}" (mood: ${name}, ${dur}s) → ${path.relative(BASE, out)}`)
 }

@@ -82,13 +82,23 @@ Only if NONE fit, omit `productUI` and use a `wow.layout` (`checklist` / `before
 
 Rules: 4-5 pain cards; exactly 4 wow steps; 4-6 real customer logos (from the scanned site if present, else omit/empty array); `stat` is a real number ("47%", "6→1", "$2M"); `cta` is one action verb phrase. Keep copy specific to THIS product.
 
-## Step 3 — Build (Bash)
+## Step 3 — Ask the user 2 quick preferences, then build
+
+Before building, **ask the user two short questions** (offer the options, default in **bold**):
+
+1. **🎵 Music vibe?** — `Auto (match the product)` *(default)* · `Uplifting` · `Cinematic` · `Lo-fi` · `Electronic` · `Corporate` · `Anthem` · `None (silent)`
+2. **⏱️ Pace?** — `Fast (~22s)` · **`Normal (~26s)`** *(default)* · `Relaxed (~32s)`
+
+Then build with their choices. Map the vibe to a mood arg (`auto|uplift|cinematic|lofi|electronic|corporate|anthem|none`) and the pace to `fast|normal|relaxed`:
 
 ```bash
-npx tsx agent/music.ts <slug> 37            # custom per-product soundtrack
-npx tsx agent/assemble-templated.ts <slug>  # renders the templates from the brief
+# <mood> = their music choice (auto = pick by product); <pace> = fast|normal|relaxed
+npx tsx agent/music.ts <slug> 37 <mood>             # soundtrack (skips if "none")
+npx tsx agent/assemble-templated.ts <slug> <pace>   # builds at the chosen pace
 npx tsc --noEmit -p tsconfig.json 2>&1 | grep -E "src/(generated|templates)" | head   # should be empty
 ```
+
+If the user doesn't care, just use `auto` + `normal`. (You can also set `"pace"` in the brief JSON instead of passing it.)
 
 ## Step 4 — Render (Bash)
 

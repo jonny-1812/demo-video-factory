@@ -114,8 +114,8 @@ const PainHeader: React.FC<{ brief: Brief; p: ReturnType<typeof painPalette> }> 
   </div>
 )
 const PainBanner: React.FC<{ brief: Brief; p: ReturnType<typeof painPalette>; frame: number; fps: number }> = ({ brief, p, frame, fps }) => {
-  const banner = spring({ frame: frame - 95, fps, config: { damping: 12, stiffness: 120 } })
-  const shake = frame > 95 ? Math.sin((frame - 95) / 2) * interpolate(frame, [95, 130], [3, 0], clamp) : 0
+  const banner = spring({ frame: frame - 70, fps, config: { damping: 12, stiffness: 120 } })
+  const shake = frame > 70 ? Math.sin((frame - 70) / 2) * interpolate(frame, [70, 105], [3, 0], clamp) : 0
   return <div style={{ position: 'absolute', bottom: 70, left: '50%', zIndex: 6, transform: `translateX(-50%) translateX(${shake}px) scale(${interpolate(banner, [0, 1], [0.9, 1], clamp)})`, opacity: interpolate(banner, [0, 1], [0, 1], clamp), background: p.danger, color: '#fff', fontSize: 24, fontWeight: 800, padding: '17px 38px', borderRadius: 13, boxShadow: `0 20px 50px ${withAlpha(p.danger, '73')}` }}>⚠ {brief.pain.banner}</div>
 }
 
@@ -128,11 +128,11 @@ export const PainCards: React.FC<{ brief: Brief }> = ({ brief }) => {
   const pos = [{ x: 96, y: 250, r: -3 }, { x: 1190, y: 196, r: 3 }, { x: 250, y: 612, r: 2.5 }, { x: 1130, y: 628, r: -2.5 }]
   const ghosts = [{ x: 690, y: 360, w: 300, h: 120, r: 2 }, { x: 1560, y: 430, w: 250, h: 110, r: -3 }, { x: 60, y: 470, w: 230, h: 100, r: 4 }, { x: 700, y: 770, w: 320, h: 120, r: -2 }, { x: 1430, y: 232, w: 220, h: 96, r: 5 }]
   const eio = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
-  const appearF = (i: number) => 16 + i * 18
+  const appearF = (i: number) => 8 + i * 12
   const base = [3, 7, 12, 5]
   // a cursor frantically roaming the cards, "clicking" each (but they never clear)
   const centers = pos.map((pp) => ({ x: pp.x + 192, y: pp.y + 78 }))
-  const roamStart = 46, legDur = 32
+  const roamStart = 30, legDur = 16
   const ci = Math.max(0, Math.min(centers.length - 1, Math.floor((frame - roamStart) / legDur)))
   const within = eio(interpolate(frame, [roamStart + ci * legDur, roamStart + ci * legDur + legDur * 0.55], [0, 1], clamp))
   const fromC = centers[Math.max(0, ci - 1)], toC = centers[ci]
@@ -1260,7 +1260,7 @@ export const WalkthroughUI: React.FC<{ brief: Brief }> = ({ brief }) => {
     { tip: 'Save it — you’re done!', label: 'Create deal' },
   ]
   // target rectangles inside the faux app (1560×740 window space)
-  const rects = [{ x: 1316, y: 96, w: 196, h: 40 }, { x: 1004, y: 250, w: 480, h: 52 }, { x: 1004, y: 338, w: 480, h: 52 }, { x: 1004, y: 452, w: 200, h: 48 }]
+  const rects = [{ x: 1316, y: 84, w: 196, h: 40 }, { x: 1058, y: 248, w: 446, h: 50 }, { x: 1058, y: 354, w: 446, h: 50 }, { x: 1058, y: 560, w: 200, h: 46 }]
   const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
   const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
   const askOp = interpolate(frame, [16, 36], [0, 1], clamp)
@@ -1281,29 +1281,28 @@ export const WalkthroughUI: React.FC<{ brief: Brief }> = ({ brief }) => {
     <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 32%, ${withAlpha(pr, '22')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef0f3'} 64%)`, fontFamily: font(brief.fonts.body) }}>
       <div style={{ position: 'absolute', top: 44, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
       <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 1560, height: 740, background: '#ffffff', borderRadius: 16, boxShadow: '0 50px 120px rgba(20,28,46,0.4)', overflow: 'hidden', border: `1px solid ${line}` }}>
-        {/* faux web app (any app Guidely runs on) */}
-        <div style={{ height: 56, background: '#0f1117', display: 'flex', alignItems: 'center', padding: '0 22px', gap: 22 }}>
+        {/* faux web app — every target is absolutely positioned at rects[i], the SAME
+            coords the spotlight uses, so the highlight always lines up exactly. */}
+        <div style={{ position: 'absolute', inset: 0, background: '#f6f7f9' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 56, background: '#0f1117', display: 'flex', alignItems: 'center', padding: '0 22px', gap: 22 }}>
           <div style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>Acme CRM</div>
           {['Deals', 'Contacts', 'Reports'].map((t, i) => <span key={i} style={{ color: i === 0 ? '#fff' : '#9aa1ad', fontSize: 14, fontWeight: i === 0 ? 700 : 500 }}>{t}</span>)}
         </div>
-        <div style={{ position: 'absolute', inset: '56px 0 0 0', background: '#f6f7f9' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 30px' }}>
-            <div style={{ color: ink, fontSize: 26, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>Deals</div>
-            <div style={{ background: pr, color: ctaText(pr), fontWeight: 800, fontSize: 14, padding: '10px 18px', borderRadius: 9 }}>+ New deal</div>
-          </div>
-          {/* faux table */}
-          <div style={{ margin: '0 30px', background: '#fff', border: `1px solid ${line}`, borderRadius: 12, width: 900 }}>
-            {['Acme Corp · $12,000', 'Globex · $8,500', 'Initech · $21,000', 'Umbrella · $5,400'].map((t, i) => <div key={i} style={{ padding: '16px 20px', borderBottom: i < 3 ? `1px solid ${line}` : 'none', color: ink, fontSize: 15, display: 'flex', justifyContent: 'space-between' }}><span>{t.split(' · ')[0]}</span><span style={{ color: mut }}>{t.split(' · ')[1]}</span></div>)}
-          </div>
-          {/* "New deal" form panel */}
-          <div style={{ position: 'absolute', top: 90, right: 30, width: 500, background: '#fff', border: `1px solid ${line}`, borderRadius: 14, boxShadow: '0 18px 40px rgba(20,28,46,0.12)', padding: 24 }}>
-            <div style={{ color: ink, fontSize: 18, fontWeight: 800, marginBottom: 18 }}>New deal</div>
-            {['Deal name', 'Stage', 'Value'].map((f, i) => <div key={i} style={{ marginBottom: 16 }}><div style={{ color: mut, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{f}</div><div style={{ border: `1.5px solid ${line}`, borderRadius: 9, padding: '13px 14px', color: mut, fontSize: 14 }}>{['Acme Corp expansion', 'Qualified', '$18,000'][i]}</div></div>)}
-            <div style={{ background: pr, color: ctaText(pr), textAlign: 'center', fontWeight: 800, fontSize: 15, padding: '13px 0', borderRadius: 10, width: 200 }}>Create deal</div>
-          </div>
+        <div style={{ position: 'absolute', left: 40, top: 80, color: ink, fontSize: 26, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>Deals</div>
+        <div style={{ position: 'absolute', left: 40, top: 150, width: 900, background: '#fff', border: `1px solid ${line}`, borderRadius: 12 }}>
+          {['Acme Corp · $12,000', 'Globex · $8,500', 'Initech · $21,000', 'Umbrella · $5,400'].map((t, i) => <div key={i} style={{ padding: '16px 20px', borderBottom: i < 3 ? `1px solid ${line}` : 'none', color: ink, fontSize: 15, display: 'flex', justifyContent: 'space-between' }}><span>{t.split(' · ')[0]}</span><span style={{ color: mut }}>{t.split(' · ')[1]}</span></div>)}
         </div>
-        {/* spotlight dim with a hole over the current target */}
-        {!done && <div style={{ position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: 10, boxShadow: `0 0 0 9999px rgba(10,8,16,${dimA})`, border: `2.5px solid ${pr}`, outline: `${pr} solid 0`, transition: 'none' }} />}
+        {/* New deal panel (decorative bg) + captions */}
+        <div style={{ position: 'absolute', left: 1030, top: 150, width: 500, height: 540, background: '#fff', border: `1px solid ${line}`, borderRadius: 14, boxShadow: '0 18px 40px rgba(20,28,46,0.12)' }} />
+        <div style={{ position: 'absolute', left: 1058, top: 178, color: ink, fontSize: 18, fontWeight: 800 }}>New deal</div>
+        {([['Deal name', 224], ['Stage', 330], ['Value', 436]] as [string, number][]).map(([c, y], i) => <div key={i} style={{ position: 'absolute', left: 1058, top: y, color: mut, fontSize: 12, fontWeight: 600 }}>{c}</div>)}
+        <div style={{ position: 'absolute', left: rects[1].x, top: rects[1].y, width: rects[1].w, height: rects[1].h, border: `1.5px solid ${line}`, borderRadius: 9, display: 'flex', alignItems: 'center', padding: '0 14px', color: ink, fontSize: 15, background: '#fff', boxSizing: 'border-box' }}>Acme Corp expansion</div>
+        <div style={{ position: 'absolute', left: rects[2].x, top: rects[2].y, width: rects[2].w, height: rects[2].h, border: `1.5px solid ${line}`, borderRadius: 9, display: 'flex', alignItems: 'center', padding: '0 14px', color: ink, fontSize: 15, background: '#fff', boxSizing: 'border-box' }}>Qualified</div>
+        <div style={{ position: 'absolute', left: 1058, top: 458, width: 446, height: 50, border: `1.5px solid ${line}`, borderRadius: 9, display: 'flex', alignItems: 'center', padding: '0 14px', color: mut, fontSize: 15, background: '#fff', boxSizing: 'border-box' }}>$18,000</div>
+        <div style={{ position: 'absolute', left: rects[3].x, top: rects[3].y, width: rects[3].w, height: rects[3].h, background: pr, color: ctaText(pr), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, borderRadius: 10, boxSizing: 'border-box' }}>Create deal</div>
+        <div style={{ position: 'absolute', left: rects[0].x, top: rects[0].y, width: rects[0].w, height: rects[0].h, background: pr, color: ctaText(pr), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, borderRadius: 9, boxSizing: 'border-box' }}>+ New deal</div>
+        {/* spotlight: identical rect to the active target → always aligned */}
+        {!done && <div style={{ position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: 10, boxShadow: `0 0 0 9999px rgba(10,8,16,${dimA})`, border: `2.5px solid ${pr}`, boxSizing: 'border-box' }} />}
         {/* Ask Guidely pill (top) */}
         <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', opacity: askOp, background: '#1c1424', color: '#fff', border: `1px solid ${withAlpha(pr, '55')}`, borderRadius: 22, padding: '9px 18px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 9, zIndex: 20 }}><span style={{ color: pr }}>✦ {brief.company}</span><span style={{ color: '#cfd2da' }}>{ask}</span></div>
         {/* tooltip card */}

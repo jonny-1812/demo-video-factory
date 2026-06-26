@@ -10,9 +10,14 @@ const BASE = path.resolve(path.dirname(__filename), '..')
 
 const ORDER = ['Scene1_Pain', 'Scene2_Reveal', 'Scene3_Wow', 'Scene4_Outcome'] as const
 const COMP = { Scene1_Pain: 'Pain', Scene2_Reveal: 'Reveal', Scene3_Wow: 'Wow', Scene4_Outcome: 'Outcome' }
-// Tighter pacing — the old 150/300/450/210 (~36s) felt slow. Front-loaded scene
-// animations just hold less; the product-UI scene is retimed to match.
-const DUR: Record<string, number> = { Scene1_Pain: 120, Scene2_Reveal: 234, Scene3_Wow: 300, Scene4_Outcome: 168 }
+// USER-CHOSEN PACE. Scenes are front-loaded (animations finish early, then hold), so pace
+// mostly trims/extends the hold. Wow stays ~300 at every pace because its product-UI
+// animation needs the full budget; the other scenes flex. (≈22s / 26s / 32s)
+const PACE: Record<string, Record<string, number>> = {
+  fast:    { Scene1_Pain: 112, Scene2_Reveal: 196, Scene3_Wow: 300, Scene4_Outcome: 150 },
+  normal:  { Scene1_Pain: 120, Scene2_Reveal: 234, Scene3_Wow: 300, Scene4_Outcome: 168 },
+  relaxed: { Scene1_Pain: 150, Scene2_Reveal: 300, Scene3_Wow: 340, Scene4_Outcome: 220 },
+}
 const TR = 14
 
 function pickAudio(slug: string): string | null {
@@ -25,10 +30,12 @@ function pickAudio(slug: string): string | null {
   return null
 }
 
-export function assembleTemplated(slug: string): number {
+export function assembleTemplated(slug: string, paceArg?: string): number {
   const briefPath = path.join(BASE, 'out', `${slug}_brief.json`)
   if (!existsSync(briefPath)) throw new Error(`brief not found: ${briefPath}`)
   const brief = JSON.parse(readFileSync(briefPath, 'utf-8'))
+  const pace = (paceArg || brief.pace || 'normal').toLowerCase()
+  const DUR = PACE[pace] || PACE.normal
 
   // Hero-slot collision guard (code, not prompt): reveal/wow/outcome must use
   // DIFFERENT real images, or all 3 scenes look identical. Reassign from the
@@ -107,12 +114,12 @@ ${seq}
     if (updated !== root) writeFileSync(rootPath, updated)
   } catch { /* non-fatal */ }
 
-  console.log(`✓ Templated assemble: ${totalFrames} frames (${(totalFrames / 30).toFixed(1)}s), audio=${audio ?? 'none'}`)
+  console.log(`✓ Templated assemble: ${totalFrames} frames (${(totalFrames / 30).toFixed(1)}s), pace=${pace}, audio=${audio ?? 'none'}`)
   return totalFrames
 }
 
 if (process.argv[1] && process.argv[1].includes('assemble-templated')) {
   const slug = process.argv[2]
-  if (!slug) { console.error('Usage: npx tsx agent/assemble-templated.ts <slug>'); process.exit(1) }
-  assembleTemplated(slug)
+  if (!slug) { console.error('Usage: npx tsx agent/assemble-templated.ts <slug> [fast|normal|relaxed]'); process.exit(1) }
+  assembleTemplated(slug, process.argv[3])
 }
