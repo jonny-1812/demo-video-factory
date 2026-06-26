@@ -38,9 +38,10 @@ The visual quality comes from fixed, hand‑built scene **templates** (`src/temp
 ## Requirements
 
 - **Node.js 18+**
-- **ffmpeg** — for the soundtrack:
+- **ffmpeg** — for the soundtrack (must be on your `PATH`):
   - macOS: `brew install ffmpeg`
   - Debian/Ubuntu: `sudo apt-get install ffmpeg`
+  - Windows: `winget install Gyan.FFmpeg` (or download from [ffmpeg.org](https://ffmpeg.org/download.html))
 - **Claude Code** (for the recommended `/demo` flow):
   ```bash
   npm install -g @anthropic-ai/claude-code

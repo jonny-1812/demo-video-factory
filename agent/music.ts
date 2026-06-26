@@ -4,6 +4,7 @@
 // master → public/real/<slug>/music.mp3. Unique per product (mood + seed).
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'fs'
 import { execSync } from 'child_process'
+import os from 'os'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -150,7 +151,7 @@ export function generateMusic(slug: string, durationSec = 38): string {
   kick(durationSec - 0.05); clap(durationSec - 0.05)
 
   // ── write WAV ───────────────────────────────────────────────────────────────
-  const wavPath = `/tmp/music_${slug}_${seedFrom(slug)}.wav`
+  const wavPath = path.join(os.tmpdir(), `music_${slug}_${seedFrom(slug)}.wav`)
   const buf = Buffer.alloc(44 + n * 4)
   buf.write('RIFF', 0); buf.writeUInt32LE(36 + n * 4, 4); buf.write('WAVE', 8); buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(2, 22); buf.writeUInt32LE(SR, 24); buf.writeUInt32LE(SR * 4, 28); buf.writeUInt16LE(4, 32); buf.writeUInt16LE(16, 34); buf.write('data', 36); buf.writeUInt32LE(n * 4, 40)
   let off = 44
@@ -162,7 +163,7 @@ export function generateMusic(slug: string, durationSec = 38): string {
   const outPath = path.join(outDir, 'music.mp3')
   // warmer low end, gentler top (was harsh +3dB@8k), lowpass to kill fizz, wider stereo.
   const filt = ['highpass=f=32', 'equalizer=f=120:t=q:w=1.0:g=2', 'treble=g=1.5:f=9000', 'lowpass=f=15500', 'extrastereo=m=1.35', 'aecho=0.7:0.7:60|130:0.22|0.1', 'acompressor=threshold=-17dB:ratio=3.5:attack=10:release=200', 'alimiter=limit=0.95', 'loudnorm=I=-14:TP=-1.5:LRA=10'].join(',')
-  execSync(`ffmpeg -y -i "${wavPath}" -af "${filt}" -codec:a libmp3lame -b:a 256k "${outPath}" 2>/dev/null`, { stdio: 'ignore' })
+  execSync(`ffmpeg -y -i "${wavPath}" -af "${filt}" -codec:a libmp3lame -b:a 256k "${outPath}"`, { stdio: 'ignore' })
   return outPath
 }
 

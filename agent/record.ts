@@ -5,7 +5,7 @@
 // back to static screenshots).
 import { chromium } from 'playwright'
 import { execFileSync } from 'child_process'
-import { existsSync, unlinkSync } from 'fs'
+import { existsSync, unlinkSync, mkdirSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -94,6 +94,6 @@ if (process.argv[1] && process.argv[1].includes('record')) {
   const url = raw.startsWith('http') ? raw : 'https://' + raw
   const slug = new URL(url).hostname.replace(/^www\./, '').split('.')[0]
   const outDir = path.join(BASE, 'public', 'real', slug)
-  execFileSync('mkdir', ['-p', outDir])
+  mkdirSync(outDir, { recursive: true })
   recordInteraction(url, slug, outDir).then(r => console.log('result:', r))
 }
