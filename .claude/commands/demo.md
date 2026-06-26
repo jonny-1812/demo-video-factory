@@ -76,6 +76,7 @@ Write EXACTLY this shape with Write:
 - `editor` — a page/doc composes itself block by block (heading, text, image, CTA). **Use for site/page/doc builders, no-code, design canvases, CMS.** Data: `{ docTitle, blocks:[{type:'heading'|'text'|'image'|'button', text}], badge }`.
 - `checkout` — cart → card fills → Pay → "Payment successful". **Use for commerce, billing, payments, marketplaces.** Data: `{ items:[{name, price}], total, badge }`.
 - `voicegen` — type a line → pick a voice → Generate → a waveform renders and plays. **Use for TTS/voice, audio, music, dubbing, podcast, voice-agent tools.** Data: `{ text, voices:[], lang, badge }`.
+- `walkthrough` — ask a question → a spotlight + tooltips walk through the steps live on a web app. **Use for onboarding, adoption, in-app guidance, product tours, training, no-code-help tools.** Data: `{ ask, steps:[{tip, label}], badge }`.
 
 Only if NONE fit, omit `productUI` and use a `wow.layout` (`checklist` / `beforeafter` / `gallery`) — and prefer to set `wow.video` to `manifest.interactionVideo` (real motion) over a static layout if the recording shows the actual product.
 

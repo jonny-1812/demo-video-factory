@@ -68,7 +68,7 @@ const ctaText = (bg: string) => (lum(bg) > 0.6 ? '#0b0d11' : '#ffffff')
 // (its real screens, design language, colors) and animates its core workflow.
 export interface ProductUI {
   // Only kinds with a real recreation in PRODUCT_UI — keep this in sync with that map.
-  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform' | 'chat' | 'dashboard' | 'editor' | 'checkout' | 'voicegen'
+  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform' | 'chat' | 'dashboard' | 'editor' | 'checkout' | 'voicegen' | 'walkthrough'
   data?: Record<string, unknown>
 }
 
@@ -1210,7 +1210,85 @@ export const VoiceGenUI: React.FC<{ brief: Brief }> = ({ brief }) => {
   )
 }
 
-const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI, chat: ChatUI, dashboard: DashboardUI, editor: EditorUI, checkout: CheckoutUI, voicegen: VoiceGenUI }
+// WALKTHROUGH / GUIDED TOUR — ask a question → a spotlight + tooltips walk you through
+// the steps live on a real web app. Archetype for onboarding, adoption, in-app guidance,
+// product tours, training (WalkMe / Pendo / Appcues / Userpilot / Guidely style).
+export const WalkthroughUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary, ink = '#1d2430', mut = '#8a909c', line = '#eceef2'
+  const ask = (d.ask as string) || 'How do I create a new deal?'
+  const steps = (d.steps as { tip: string; label: string }[]) || [
+    { tip: 'Click here to start a new deal', label: '+ New deal' },
+    { tip: 'Give your deal a name', label: 'Deal name' },
+    { tip: 'Pick the pipeline stage', label: 'Stage' },
+    { tip: 'Save it — you’re done!', label: 'Create deal' },
+  ]
+  // target rectangles inside the faux app (1560×740 window space)
+  const rects = [{ x: 1316, y: 96, w: 196, h: 40 }, { x: 1004, y: 250, w: 480, h: 52 }, { x: 1004, y: 338, w: 480, h: 52 }, { x: 1004, y: 452, w: 200, h: 48 }]
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  const askOp = interpolate(frame, [16, 36], [0, 1], clamp)
+  const START = 48, DUR = 58
+  const n = steps.length
+  const idx = Math.max(0, Math.min(n - 1, Math.floor((frame - START) / DUR)))
+  const eio = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+  const moveT = eio(interpolate(frame, [START + idx * DUR, START + idx * DUR + 16], [0, 1], clamp))
+  const lerp = (a: number, c: number) => a + (c - a) * (idx === 0 ? 1 : moveT)
+  const r0 = rects[Math.max(0, idx - 1)], r1 = rects[idx]
+  const R = { x: lerp(r0.x, r1.x), y: lerp(r0.y, r1.y), w: lerp(r0.w, r1.w), h: lerp(r0.h, r1.h) }
+  const done = frame >= START + n * DUR
+  const dimA = done ? interpolate(frame, [START + n * DUR, START + n * DUR + 16], [0.6, 0], clamp) : 0.6
+  const pulse = 1 + Math.sin(frame / 7) * 0.04
+  // tooltip to the LEFT of the spotlight, pointing right
+  const tipX = R.x - 320, tipY = R.y + R.h / 2 - 44
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 32%, ${withAlpha(pr, '22')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef0f3'} 64%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 44, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
+      <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 1560, height: 740, background: '#ffffff', borderRadius: 16, boxShadow: '0 50px 120px rgba(20,28,46,0.4)', overflow: 'hidden', border: `1px solid ${line}` }}>
+        {/* faux web app (any app Guidely runs on) */}
+        <div style={{ height: 56, background: '#0f1117', display: 'flex', alignItems: 'center', padding: '0 22px', gap: 22 }}>
+          <div style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>Acme CRM</div>
+          {['Deals', 'Contacts', 'Reports'].map((t, i) => <span key={i} style={{ color: i === 0 ? '#fff' : '#9aa1ad', fontSize: 14, fontWeight: i === 0 ? 700 : 500 }}>{t}</span>)}
+        </div>
+        <div style={{ position: 'absolute', inset: '56px 0 0 0', background: '#f6f7f9' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 30px' }}>
+            <div style={{ color: ink, fontSize: 26, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>Deals</div>
+            <div style={{ background: pr, color: ctaText(pr), fontWeight: 800, fontSize: 14, padding: '10px 18px', borderRadius: 9 }}>+ New deal</div>
+          </div>
+          {/* faux table */}
+          <div style={{ margin: '0 30px', background: '#fff', border: `1px solid ${line}`, borderRadius: 12, width: 900 }}>
+            {['Acme Corp · $12,000', 'Globex · $8,500', 'Initech · $21,000', 'Umbrella · $5,400'].map((t, i) => <div key={i} style={{ padding: '16px 20px', borderBottom: i < 3 ? `1px solid ${line}` : 'none', color: ink, fontSize: 15, display: 'flex', justifyContent: 'space-between' }}><span>{t.split(' · ')[0]}</span><span style={{ color: mut }}>{t.split(' · ')[1]}</span></div>)}
+          </div>
+          {/* "New deal" form panel */}
+          <div style={{ position: 'absolute', top: 90, right: 30, width: 500, background: '#fff', border: `1px solid ${line}`, borderRadius: 14, boxShadow: '0 18px 40px rgba(20,28,46,0.12)', padding: 24 }}>
+            <div style={{ color: ink, fontSize: 18, fontWeight: 800, marginBottom: 18 }}>New deal</div>
+            {['Deal name', 'Stage', 'Value'].map((f, i) => <div key={i} style={{ marginBottom: 16 }}><div style={{ color: mut, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{f}</div><div style={{ border: `1.5px solid ${line}`, borderRadius: 9, padding: '13px 14px', color: mut, fontSize: 14 }}>{['Acme Corp expansion', 'Qualified', '$18,000'][i]}</div></div>)}
+            <div style={{ background: pr, color: ctaText(pr), textAlign: 'center', fontWeight: 800, fontSize: 15, padding: '13px 0', borderRadius: 10, width: 200 }}>Create deal</div>
+          </div>
+        </div>
+        {/* spotlight dim with a hole over the current target */}
+        {!done && <div style={{ position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: 10, boxShadow: `0 0 0 9999px rgba(10,8,16,${dimA})`, border: `2.5px solid ${pr}`, outline: `${pr} solid 0`, transition: 'none' }} />}
+        {/* Ask Guidely pill (top) */}
+        <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', opacity: askOp, background: '#1c1424', color: '#fff', border: `1px solid ${withAlpha(pr, '55')}`, borderRadius: 22, padding: '9px 18px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 9, zIndex: 20 }}><span style={{ color: pr }}>✦ {brief.company}</span><span style={{ color: '#cfd2da' }}>{ask}</span></div>
+        {/* tooltip card */}
+        {!done && <div style={{ position: 'absolute', left: tipX, top: tipY, width: 290, background: '#1c1424', color: '#fff', borderRadius: 12, padding: '16px 18px', boxShadow: '0 16px 40px rgba(0,0,0,0.4)', border: `1px solid ${withAlpha(pr, '40')}`, zIndex: 21, transform: `scale(${pulse})` }}>
+          <div style={{ color: pr, fontSize: 12, fontWeight: 800, marginBottom: 6 }}>STEP {idx + 1} OF {n}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35 }}>{steps[idx].tip}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
+            <div style={{ display: 'flex', gap: 5 }}>{steps.map((_, i) => <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: i === idx ? pr : 'rgba(255,255,255,0.25)' }} />)}</div>
+            <div style={{ background: pr, color: ctaText(pr), fontSize: 13, fontWeight: 800, padding: '6px 14px', borderRadius: 8 }}>{idx === n - 1 ? 'Finish' : 'Next →'}</div>
+          </div>
+        </div>}
+        {/* animated cursor to the target */}
+        {!done && <Cursor x={R.x + R.w - 30} y={R.y + R.h / 2} clickFrames={rects.map((_, i) => START + i * DUR + 10)} frame={frame} color={pr} />}
+      </div>
+      {done && <div style={{ position: 'absolute', bottom: 64, left: '50%', transform: `translateX(-50%) scale(${interpolate(frame, [START + n * DUR, START + n * DUR + 16], [0.9, 1], clamp)})`, opacity: interpolate(frame, [START + n * DUR, START + n * DUR + 16], [0, 1], clamp), background: '#1c1424', color: '#fff', fontSize: 16, fontWeight: 700, padding: '13px 22px', borderRadius: 11, display: 'flex', gap: 10, border: `1px solid ${withAlpha(pr, '55')}` }}><span style={{ color: pr }}>✓</span>{(d.badge as string) || 'Guide saved — share it with your team'}</div>}
+    </AbsoluteFill>
+  )
+}
+
+const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI, chat: ChatUI, dashboard: DashboardUI, editor: EditorUI, checkout: CheckoutUI, voicegen: VoiceGenUI, walkthrough: WalkthroughUI }
 export const ProductUIScene: React.FC<{ brief: Brief }> = ({ brief }) => { const k = brief.wow.productUI?.kind || ''; const V = PRODUCT_UI[k]; return V ? <V brief={brief} /> : <WowScene brief={brief} /> }
 
 // ── Layout dispatchers ───────────────────────────────────────────────────────
