@@ -8,12 +8,14 @@ import { loadFont as loadInter } from '@remotion/google-fonts/Inter'
 import { loadFont as loadPlayfair } from '@remotion/google-fonts/PlayfairDisplay'
 import { loadFont as loadGrotesk } from '@remotion/google-fonts/SpaceGrotesk'
 import { loadFont as loadDM } from '@remotion/google-fonts/DMSans'
+import { loadFont as loadHeebo } from '@remotion/google-fonts/Heebo'
 
 const FONTS: Record<string, string> = {
   inter: loadInter().fontFamily,
   playfair: loadPlayfair().fontFamily,
   grotesk: loadGrotesk().fontFamily,
   dmsans: loadDM().fontFamily,
+  heebo: loadHeebo().fontFamily, // Hebrew + Latin — use for Hebrew/RTL products
 }
 const font = (k?: string) => FONTS[k || 'inter'] || FONTS.inter
 
