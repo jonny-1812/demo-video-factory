@@ -127,6 +127,21 @@ export const PainCards: React.FC<{ brief: Brief }> = ({ brief }) => {
   const cards = (brief.pain.cards || []).slice(0, 4)
   const pos = [{ x: 96, y: 250, r: -3 }, { x: 1190, y: 196, r: 3 }, { x: 250, y: 612, r: 2.5 }, { x: 1130, y: 628, r: -2.5 }]
   const ghosts = [{ x: 690, y: 360, w: 300, h: 120, r: 2 }, { x: 1560, y: 430, w: 250, h: 110, r: -3 }, { x: 60, y: 470, w: 230, h: 100, r: 4 }, { x: 700, y: 770, w: 320, h: 120, r: -2 }, { x: 1430, y: 232, w: 220, h: 96, r: 5 }]
+  const eio = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+  const appearF = (i: number) => 16 + i * 18
+  const base = [3, 7, 12, 5]
+  // a cursor frantically roaming the cards, "clicking" each (but they never clear)
+  const centers = pos.map((pp) => ({ x: pp.x + 192, y: pp.y + 78 }))
+  const roamStart = 46, legDur = 32
+  const ci = Math.max(0, Math.min(centers.length - 1, Math.floor((frame - roamStart) / legDur)))
+  const within = eio(interpolate(frame, [roamStart + ci * legDur, roamStart + ci * legDur + legDur * 0.55], [0, 1], clamp))
+  const fromC = centers[Math.max(0, ci - 1)], toC = centers[ci]
+  const curX = frame < roamStart ? centers[0].x : fromC.x + (toC.x - fromC.x) * within
+  const curY = frame < roamStart ? centers[0].y : fromC.y + (toC.y - fromC.y) * within
+  const clickAt = (i: number) => roamStart + i * legDur + Math.round(legDur * 0.62)
+  // live unread counter (bell) — climbs as cards arrive + their counts tick up
+  const unread = cards.reduce((sum, _c, i) => sum + (frame >= appearF(i) ? base[i] + Math.floor((frame - appearF(i)) / 20) : 0), 0)
+  const bellOp = interpolate(frame, [10, 26], [0, 1], clamp)
   return (
     <AbsoluteFill style={{ background: p.bg, fontFamily: font(brief.fonts.body), opacity: intro }}>
       {ghosts.map((g, i) => { const s = spring({ frame: frame - (6 + i * 5), fps, config: { damping: 16, stiffness: 90 } }); return (
@@ -135,10 +150,28 @@ export const PainCards: React.FC<{ brief: Brief }> = ({ brief }) => {
           <div style={{ height: 8, width: '70%', background: p.ghost, borderRadius: 6, margin: '14px 0 0 18px' }} />
         </div>) })}
       <PainHeader brief={brief} p={p} />
+      {/* live unread counter (bell) — top-right, climbing */}
+      <div style={{ position: 'absolute', top: 56, right: 70, opacity: bellOp, display: 'flex', alignItems: 'center', gap: 12, zIndex: 7 }}>
+        <div style={{ position: 'relative', fontSize: 30, transform: `rotate(${Math.sin(frame / 3) * (unread > 0 ? 7 : 0)}deg)` }}>🔔
+          <span style={{ position: 'absolute', top: -6, right: -10, background: p.danger, color: '#fff', fontSize: 13, fontWeight: 800, borderRadius: 20, padding: '1px 7px', minWidth: 14, textAlign: 'center' }}>{unread}</span>
+        </div>
+        <span style={{ color: p.muted, fontSize: 15, fontWeight: 600 }}>unread</span>
+      </div>
       {cards.map((c, i) => {
-        const pp = pos[i]; const s = spring({ frame: frame - (16 + i * 9), fps, config: { damping: 14, stiffness: 110 } })
+        const af = appearF(i); if (frame < af - 2) return null
+        const s = spring({ frame: frame - af, fps, config: { damping: 11, stiffness: 130 }, from: 0.6, to: 1 })
+        const op = interpolate(frame, [af, af + 8], [0, 1], clamp)
+        const fresh = frame < af + 14 // arrival flash
+        // dismiss wobble when the cursor "clicks" the card (it dips, flashes, springs back)
+        const ca = clickAt(i); const wob = frame >= ca && frame < ca + 16 ? Math.sin((frame - ca) / 16 * Math.PI) : 0
+        const cnt = base[i] + Math.floor((frame - af) / 20)
+        const pingR = frame < af + 22 ? interpolate(frame, [af, af + 22], [0, 1], clamp) : -1
         return (
-          <div key={i} style={{ position: 'absolute', left: pp.x, top: pp.y, width: 384, opacity: interpolate(s, [0, 1], [0, 1], clamp), transform: `rotate(${pp.r}deg) scale(${interpolate(s, [0, 1], [0.82, 1], clamp)})`, background: p.card, borderRadius: 14, padding: 22, borderTop: `3px solid ${p.accent}`, boxShadow: p.dark ? '0 22px 50px rgba(0,0,0,0.5)' : '0 22px 50px rgba(30,40,60,0.16)', border: `1px solid ${p.line}` }}>
+          <div key={i} style={{ position: 'absolute', left: pos[i].x, top: pos[i].y, width: 384, opacity: op, transform: `rotate(${pos[i].r}deg) scale(${interpolate(s, [0, 1], [0.6, 1], clamp) - wob * 0.1})`, background: p.card, borderRadius: 14, padding: 22, borderTop: `3px solid ${fresh || wob > 0.3 ? p.danger : p.accent}`, boxShadow: (fresh || wob > 0.3) ? `0 22px 50px rgba(0,0,0,0.5), 0 0 0 2px ${withAlpha(p.danger, '66')}` : (p.dark ? '0 22px 50px rgba(0,0,0,0.5)' : '0 22px 50px rgba(30,40,60,0.16)'), border: `1px solid ${p.line}` }}>
+            {/* arrival ping ring */}
+            {pingR >= 0 && <div style={{ position: 'absolute', top: -10, left: -10, width: 36, height: 36, borderRadius: '50%', border: `2px solid ${p.danger}`, opacity: (1 - pingR) * 0.8, transform: `scale(${0.4 + pingR * 1.4})` }} />}
+            {/* per-card unread badge */}
+            <div style={{ position: 'absolute', top: -11, left: -11, background: p.danger, color: '#fff', fontSize: 13, fontWeight: 800, borderRadius: '50%', minWidth: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>{cnt}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ color: p.accent, fontSize: 13, fontWeight: 800, letterSpacing: 1.2 }}>{c.app}</span>
               <span style={{ background: withAlpha(p.danger, '22'), color: p.danger, fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 7 }}>{c.tag}</span>
@@ -149,6 +182,8 @@ export const PainCards: React.FC<{ brief: Brief }> = ({ brief }) => {
         )
       })}
       <PainBanner brief={brief} p={p} frame={frame} fps={fps} />
+      {/* the overwhelmed cursor, racing between cards */}
+      {frame >= roamStart - 6 && <Cursor x={curX} y={curY} clickFrames={cards.map((_c, i) => clickAt(i))} frame={frame} color={p.danger} />}
     </AbsoluteFill>
   )
 }
