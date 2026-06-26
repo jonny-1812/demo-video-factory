@@ -71,6 +71,10 @@ Write EXACTLY this shape with Write:
 - `designstudio` — prompt → a generated image/design + matched pros. Data: `{ prompt, image, pins, badge }`.
 - `scheduling` — booking flow (date → time → confirmed). Data: `{ host, event, duration, date, day, time }`.
 - `pipeline` — ATS/CRM/kanban board; records advance through stages. Data: `{ agent, user, badge }`.
+- `chat` — a customer asks → AI answer streams in with citation chips. **Use for support bots, AI assistants, copilots, search, helpdesks.** Data: `{ question, answer, sources:[], badge }`.
+- `dashboard` — KPIs count up + a chart draws itself live. **Use for analytics, BI, observability, fintech, reporting.** Data: `{ metrics:[{label, prefix?, value:number, suffix?, delta?}], chartTitle, bars:[numbers], badge }`.
+- `editor` — a page/doc composes itself block by block (heading, text, image, CTA). **Use for site/page/doc builders, no-code, design canvases, CMS.** Data: `{ docTitle, blocks:[{type:'heading'|'text'|'image'|'button', text}], badge }`.
+- `checkout` — cart → card fills → Pay → "Payment successful". **Use for commerce, billing, payments, marketplaces.** Data: `{ items:[{name, price}], total, badge }`.
 
 Only if NONE fit, omit `productUI` and use a `wow.layout` (`checklist` / `beforeafter` / `gallery`) — and prefer to set `wow.video` to `manifest.interactionVideo` (real motion) over a static layout if the recording shows the actual product.
 

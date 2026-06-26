@@ -177,8 +177,11 @@ async function main() {
   // Record the product IN MOTION (separate browser w/ video recording) — the
   // footage that lets the demo actually SHOW the product working. Non-fatal.
   let interactionVideo: string | null = null
+  let interactionVideoUsable = false
   if (downloaded.length > 0 || shots.length > 0) {
-    interactionVideo = await recordInteraction(url, slug, outDir).catch(() => null)
+    const rec = await recordInteraction(url, slug, outDir).catch(() => null)
+    interactionVideo = rec?.rel ?? null
+    interactionVideoUsable = rec?.usable ?? false
   }
 
   // Detect a text-only / bot-blocked "machine version" (e.g. Ramp serves one to
@@ -189,7 +192,7 @@ async function main() {
   // (they capture the actual rendered product), then downloaded images.
   const heroCandidates = [...shots, ...downloaded.map(d => d.file)].map(f => `real/${slug}/${f}`)
 
-  const manifest = { url, domain, slug, screenshots: shots, images: downloaded, brand, logo: logoFile, logoAspect, textOnly, heroCandidates, interactionVideo }
+  const manifest = { url, domain, slug, screenshots: shots, images: downloaded, brand, logo: logoFile, logoAspect, textOnly, heroCandidates, interactionVideo, interactionVideoUsable }
   writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
 
   console.log('✓ Scanned ' + url)

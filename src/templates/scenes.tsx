@@ -68,7 +68,7 @@ const ctaText = (bg: string) => (lum(bg) > 0.6 ? '#0b0d11' : '#ffffff')
 // (its real screens, design language, colors) and animates its core workflow.
 export interface ProductUI {
   // Only kinds with a real recreation in PRODUCT_UI — keep this in sync with that map.
-  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform'
+  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform' | 'chat' | 'dashboard' | 'editor' | 'checkout'
   data?: Record<string, unknown>
 }
 
@@ -981,7 +981,173 @@ export const DocTransformUI: React.FC<{ brief: Brief }> = ({ brief }) => {
   )
 }
 
-const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI }
+// CHAT / ASSISTANT — a customer asks → the AI thinks → a grounded answer streams in
+// with citation chips. The archetype for support bots, AI assistants, copilots, search.
+export const ChatUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary, surf = b.isDark ? b.surface : '#ffffff', ink = b.isDark ? b.text : '#1d2430', mut = b.muted
+  const line = b.isDark ? 'rgba(255,255,255,0.09)' : '#ececf0', userBg = withAlpha(pr, b.isDark ? '2a' : '18')
+  const question = (d.question as string) || 'Do you offer a free trial, and how fast can I get set up?'
+  const answer = (d.answer as string) || 'Yes — 14-day free trial, no card needed. Most teams are live in ~11 minutes: add one script tag, point us at your site, and the assistant answers from your own docs.'
+  const sources = (d.sources as string[]) || ['Pricing', 'Setup guide', 'FAQ']
+  const dir = brief.fonts.heading === 'heebo' ? 'rtl' : 'ltr'
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  const typed = question.slice(0, Math.max(0, Math.min(question.length, Math.floor((frame - 10) / 0.9))))
+  const SEND = Math.max(10 + question.length * 0.9 + 4, 50)
+  const sent = frame >= SEND
+  const thinking = sent && frame < SEND + 28
+  const sStart = SEND + 28
+  const shown = frame >= sStart ? answer.slice(0, Math.floor((frame - sStart) / 0.7)) : ''
+  const done = frame >= sStart + answer.length * 0.7
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1200px 900px at 50% 36%, ${withAlpha(pr, '22')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef1f6'} 62%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 46, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
+      <div dir={dir} style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 860, height: 600, background: surf, borderRadius: 20, boxShadow: '0 50px 120px rgba(20,28,46,0.4)', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: `1px solid ${line}` }}>
+        <div style={{ height: 60, borderBottom: `1px solid ${line}`, display: 'flex', alignItems: 'center', gap: 12, padding: '0 24px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: pr, color: ctaText(pr), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{brief.company[0]}</div>
+          <div><div style={{ color: ink, fontSize: 16, fontWeight: 700 }}>{brief.company} Assistant</div><div style={{ color: '#22c55e', fontSize: 12, fontWeight: 600 }}>● online</div></div>
+        </div>
+        <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {sent && <div style={{ alignSelf: 'flex-end', maxWidth: '78%', background: userBg, color: ink, fontSize: 17, padding: '13px 17px', borderRadius: '16px 16px 4px 16px', transform: `scale(${interpolate(frame, [SEND, SEND + 8], [0.9, 1], clamp)})` }}>{question}</div>}
+          {thinking && <div style={{ alignSelf: 'flex-start', background: b.isDark ? '#22262d' : '#f1f3f6', borderRadius: '16px 16px 16px 4px', padding: '15px 18px', display: 'flex', gap: 6 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: mut, opacity: 0.4 + 0.6 * Math.abs(Math.sin(frame / 6 + i)) }} />)}</div>}
+          {frame >= sStart && <div style={{ alignSelf: 'flex-start', maxWidth: '82%', background: b.isDark ? '#22262d' : '#f1f3f6', color: ink, fontSize: 17, lineHeight: 1.5, padding: '15px 18px', borderRadius: '16px 16px 16px 4px' }}>{shown}{!done && <span style={{ opacity: Math.floor(frame / 8) % 2 ? 1 : 0, color: pr }}>▍</span>}
+            {done && <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>{sources.map((s, i) => <span key={i} style={{ opacity: interpolate(frame, [sStart + answer.length * 0.7 + i * 6, sStart + answer.length * 0.7 + 12 + i * 6], [0, 1], clamp), fontSize: 12, fontWeight: 700, color: pr, background: withAlpha(pr, '18'), border: `1px solid ${withAlpha(pr, '40')}`, borderRadius: 7, padding: '4px 10px' }}>↗ {s}</span>)}</div>}
+          </div>}
+        </div>
+        <div style={{ borderTop: `1px solid ${line}`, padding: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ flex: 1, background: b.isDark ? '#1a1d23' : '#f1f3f6', borderRadius: 12, padding: '13px 16px', color: sent ? mut : ink, fontSize: 16 }}>{sent ? 'Ask anything…' : <>{typed}<span style={{ opacity: Math.floor(frame / 8) % 2 ? 1 : 0, color: pr }}>|</span></>}</div>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: pr, color: ctaText(pr), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>➤</div>
+        </div>
+      </div>
+      {done && <div style={{ position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)', opacity: interpolate(frame, [done ? sStart + answer.length * 0.7 + 30 : 9999, sStart + answer.length * 0.7 + 46], [0, 1], clamp), background: b.isDark ? '#0e1014' : '#1d2430', color: '#fff', fontSize: 15, fontWeight: 700, padding: '11px 20px', borderRadius: 11, display: 'flex', gap: 9 }}><span style={{ color: pr }}>✦</span>{(d.badge as string) || 'Answered in 1.2s — grounded in your docs'}</div>}
+    </AbsoluteFill>
+  )
+}
+
+// DASHBOARD / ANALYTICS — KPIs count up and a chart draws itself live.
+export const DashboardUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary, surf = b.isDark ? b.surface : '#ffffff', ink = b.isDark ? b.text : '#1d2430', mut = b.muted
+  const line = b.isDark ? 'rgba(255,255,255,0.08)' : '#eceef2', head = b.isDark ? '#16130f' : '#1b2433'
+  const metrics = (d.metrics as { label: string; prefix?: string; value: number; suffix?: string; delta?: string }[]) || [
+    { label: 'Revenue', prefix: '$', value: 48200, suffix: '', delta: '+18%' },
+    { label: 'Active users', value: 12840, delta: '+9%' },
+    { label: 'Conversion', value: 4.7, suffix: '%', delta: '+0.6' },
+  ]
+  const bars = (d.bars as number[]) || [40, 62, 51, 78, 66, 90, 84, 100, 72]
+  const fmt = (n: number) => (n % 1 === 0 ? Math.round(n).toLocaleString() : n.toFixed(1))
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 32%, ${withAlpha(pr, '1e')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef1f6'} 64%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 44, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
+      <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 1500, height: 700, background: surf, borderRadius: 18, boxShadow: '0 50px 120px rgba(20,28,46,0.34)', overflow: 'hidden', border: `1px solid ${line}` }}>
+        <div style={{ height: 56, background: head, display: 'flex', alignItems: 'center', padding: '0 24px', gap: 24 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: pr, color: ctaText(pr), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>{brief.company[0]}</div>
+          {['Overview', 'Reports', 'Audience'].map((t, i) => <span key={i} style={{ color: i === 0 ? '#fff' : '#9aa1ad', fontSize: 15, fontWeight: i === 0 ? 700 : 500 }}>{t}</span>)}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: '#cde6d2', fontSize: 13, fontWeight: 600 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d27b', boxShadow: `0 0 ${8 + Math.sin(frame / 6) * 4}px #34d27b` }} />Live · this month</div>
+        </div>
+        <div style={{ padding: 28, display: 'flex', gap: 18 }}>
+          {metrics.slice(0, 3).map((m, i) => { const t = 24 + i * 10; const p = interpolate(frame, [t, t + 50], [0, 1], { ...clamp, easing: undefined }); const v = m.value * (1 - Math.pow(1 - p, 3)); return (
+            <div key={i} style={{ flex: 1, background: b.isDark ? '#22262d' : '#f8fafc', border: `1px solid ${line}`, borderRadius: 14, padding: 22, opacity: interpolate(frame, [t, t + 12], [0, 1], clamp) }}>
+              <div style={{ color: mut, fontSize: 14, fontWeight: 600 }}>{m.label}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8 }}><span style={{ color: ink, fontSize: 38, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>{m.prefix || ''}{fmt(v)}{m.suffix || ''}</span>{m.delta && <span style={{ color: '#22c55e', fontSize: 15, fontWeight: 700, opacity: interpolate(frame, [t + 40, t + 54], [0, 1], clamp) }}>▲ {m.delta}</span>}</div>
+            </div>) })}
+        </div>
+        <div style={{ margin: '0 28px', background: b.isDark ? '#22262d' : '#f8fafc', border: `1px solid ${line}`, borderRadius: 14, padding: 24, height: 340 }}>
+          <div style={{ color: ink, fontSize: 16, fontWeight: 700, marginBottom: 18 }}>{(d.chartTitle as string) || 'Growth'}</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, height: 240 }}>
+            {bars.map((bar, i) => { const t = 96 + i * 9; const g = interpolate(frame, [t, t + 26], [0, 1], clamp); return <div key={i} style={{ flex: 1, height: `${bar * g}%`, background: `linear-gradient(180deg, ${pr}, ${withAlpha(pr, '88')})`, borderRadius: '8px 8px 0 0', minHeight: 4 }} /> })}
+          </div>
+        </div>
+      </div>
+      {frame >= 210 && <div style={{ position: 'absolute', bottom: 64, left: '50%', transform: 'translateX(-50%)', opacity: interpolate(frame, [210, 226], [0, 1], clamp), background: head, color: '#fff', fontSize: 15, fontWeight: 700, padding: '11px 20px', borderRadius: 11, display: 'flex', gap: 9 }}><span style={{ color: pr }}>✦</span>{(d.badge as string) || 'Every metric, updated in real time'}</div>}
+    </AbsoluteFill>
+  )
+}
+
+// EDITOR / CANVAS — a page composes itself block by block (title, text, image, CTA).
+// Archetype for site/page/doc builders, no-code, design canvases.
+export const EditorUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary, surf = b.isDark ? b.surface : '#ffffff', ink = b.isDark ? b.text : '#1d2430', mut = b.muted
+  const line = b.isDark ? 'rgba(255,255,255,0.08)' : '#eceef2', rail = b.isDark ? 'rgba(255,255,255,0.04)' : '#f6f7f9'
+  const docTitle = (d.docTitle as string) || 'Launch announcement'
+  const blocks = (d.blocks as { type: string; text: string }[]) || [
+    { type: 'heading', text: 'Introducing our fastest release yet' },
+    { type: 'text', text: 'Ship in minutes, not weeks — with a workflow your whole team will actually use.' },
+    { type: 'image', text: '' },
+    { type: 'button', text: 'Get started free' },
+  ]
+  const palette = ['Heading', 'Text', 'Image', 'Button', 'Embed']
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 32%, ${withAlpha(pr, '1e')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef1f6'} 64%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 44, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
+      <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 1500, height: 700, background: surf, borderRadius: 18, boxShadow: '0 50px 120px rgba(20,28,46,0.34)', overflow: 'hidden', display: 'flex', border: `1px solid ${line}` }}>
+        <div style={{ width: 220, background: rail, borderRight: `1px solid ${line}`, padding: 20 }}>
+          <div style={{ color: mut, fontSize: 12, fontWeight: 800, letterSpacing: 1, marginBottom: 14 }}>BLOCKS</div>
+          {palette.map((p, i) => <div key={i} style={{ background: surf, border: `1px solid ${line}`, borderRadius: 9, padding: '11px 13px', marginBottom: 9, color: ink, fontSize: 14, fontWeight: 600, opacity: interpolate(frame, [10 + i * 4, 22 + i * 4], [0, 1], clamp) }}>⋮⋮ {p}</div>)}
+        </div>
+        <div style={{ flex: 1, background: b.isDark ? '#101216' : '#fbfcfd', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 40, overflow: 'hidden' }}>
+          <div style={{ width: 820, background: surf, borderRadius: 14, boxShadow: '0 20px 50px rgba(20,28,46,0.14)', padding: '40px 48px', minHeight: 560 }}>
+            <div style={{ color: mut, fontSize: 13, fontWeight: 700, letterSpacing: 1, marginBottom: 18, opacity: interpolate(frame, [40, 54], [0, 1], clamp) }}>{docTitle.toUpperCase()}</div>
+            {blocks.map((bl, i) => { const t = 56 + i * 34; const s = spring({ frame: frame - t, fps, config: { damping: 15, stiffness: 120 } }); if (frame < t - 2) return null; const op = interpolate(s, [0, 1], [0, 1], clamp); const ty = interpolate(s, [0, 1], [16, 0], clamp); const common = { opacity: op, transform: `translateY(${ty}px)`, marginBottom: 22 }
+              if (bl.type === 'heading') return <div key={i} style={{ ...common, color: ink, fontSize: 34, fontWeight: 800, fontFamily: font(brief.fonts.heading), lineHeight: 1.2 }}>{bl.text}</div>
+              if (bl.type === 'text') return <div key={i} style={{ ...common, color: mut, fontSize: 19, lineHeight: 1.55 }}>{bl.text}</div>
+              if (bl.type === 'image') return <div key={i} style={{ ...common, height: 200, borderRadius: 12, background: `linear-gradient(135deg, ${withAlpha(pr, '33')}, ${withAlpha(pr, '12')})`, border: `1px solid ${line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: withAlpha(ink, '88'), fontSize: 30 }}>🖼</div>
+              return <div key={i} style={{ ...common, display: 'inline-block', background: pr, color: ctaText(pr), fontSize: 17, fontWeight: 800, padding: '14px 28px', borderRadius: 10 }}>{bl.text}</div> })}
+          </div>
+        </div>
+      </div>
+      {frame >= 224 && <div style={{ position: 'absolute', bottom: 64, left: '50%', transform: 'translateX(-50%)', opacity: interpolate(frame, [224, 240], [0, 1], clamp), background: b.isDark ? '#0e1014' : '#1d2430', color: '#fff', fontSize: 15, fontWeight: 700, padding: '11px 20px', borderRadius: 11, display: 'flex', gap: 9 }}><span style={{ color: pr }}>✦</span>{(d.badge as string) || 'Published in one click'}</div>}
+    </AbsoluteFill>
+  )
+}
+
+// CHECKOUT / PAYMENTS — cart → card fills → Pay → processing → success.
+export const CheckoutUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary, surf = b.isDark ? b.surface : '#ffffff', ink = b.isDark ? b.text : '#1d2430', mut = b.muted
+  const line = b.isDark ? 'rgba(255,255,255,0.09)' : '#ececf0'
+  const items = (d.items as { name: string; price: string }[]) || [{ name: 'Pro plan — annual', price: '$240.00' }, { name: 'Onboarding', price: '$0.00' }]
+  const total = (d.total as string) || '$240.00'
+  const card = '4242 4242 4242 4242'
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  const typedCard = card.slice(0, Math.max(0, Math.min(card.length, Math.floor((frame - 30) / 2.2))))
+  const PAY = 110, paying = frame >= PAY && frame < PAY + 34, paid = frame >= PAY + 34
+  const cy = frame < PAY ? 470 + interpolate(frame, [70, PAY], [0, 230], clamp) : 700
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1100px 860px at 50% 38%, ${withAlpha(pr, '22')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef1f6'} 60%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 46, width: '100%', textAlign: 'center' }}><div style={{ color: b.isDark ? LIGHT : ink, fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div></div>
+      <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 560, background: surf, borderRadius: 20, boxShadow: '0 50px 120px rgba(20,28,46,0.4)', overflow: 'hidden', border: `1px solid ${line}` }}>
+        {!paid ? <div style={{ padding: 34 }}>
+          <div style={{ color: ink, fontSize: 22, fontWeight: 800, fontFamily: font(brief.fonts.heading), marginBottom: 20 }}>Checkout</div>
+          {items.map((it, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${line}`, color: ink, fontSize: 16, opacity: interpolate(frame, [10 + i * 6, 22 + i * 6], [0, 1], clamp) }}><span>{it.name}</span><span style={{ fontWeight: 600 }}>{it.price}</span></div>)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 22px', color: ink, fontSize: 19, fontWeight: 800 }}><span>Total</span><span>{total}</span></div>
+          <div style={{ color: mut, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Card number</div>
+          <div style={{ border: `2px solid ${frame >= 30 && frame < PAY ? pr : line}`, borderRadius: 11, padding: '14px 16px', color: ink, fontSize: 18, letterSpacing: 1.5, display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontSize: 16 }}>💳</span>{typedCard}{frame < PAY && <span style={{ opacity: Math.floor(frame / 8) % 2 ? 1 : 0, color: pr }}>|</span>}</div>
+          <div style={{ marginTop: 18, background: pr, color: ctaText(pr), textAlign: 'center', padding: '16px 0', borderRadius: 12, fontWeight: 800, fontSize: 18, boxShadow: `0 12px 30px ${withAlpha(pr, '55')}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>{paying ? <><span style={{ width: 18, height: 18, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', display: 'inline-block', transform: `rotate(${frame * 16}deg)` }} />Processing…</> : `Pay ${total}`}</div>
+        </div> : <div style={{ padding: '54px 34px', textAlign: 'center' }}>
+          <div style={{ width: 76, height: 76, borderRadius: '50%', background: '#22c55e', color: '#fff', fontSize: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', transform: `scale(${interpolate(frame, [PAY + 34, PAY + 50], [0, 1], clamp)})` }}>✓</div>
+          <div style={{ color: ink, fontSize: 26, fontWeight: 800, fontFamily: font(brief.fonts.heading) }}>Payment successful</div>
+          <div style={{ color: mut, fontSize: 16, marginTop: 8 }}>{total} · receipt sent · you're all set</div>
+        </div>}
+      </div>
+      {!paid && frame < PAY + 4 && <Cursor x={interpolate(frame, [70, PAY], [360, 480], clamp)} y={cy} clickFrames={[PAY]} frame={frame} color={pr} />}
+      {paid && <div style={{ position: 'absolute', bottom: 64, left: '50%', transform: 'translateX(-50%)', opacity: interpolate(frame, [PAY + 40, PAY + 56], [0, 1], clamp), background: b.isDark ? '#0e1014' : '#1d2430', color: '#fff', fontSize: 15, fontWeight: 700, padding: '11px 20px', borderRadius: 11, display: 'flex', gap: 9 }}><span style={{ color: pr }}>✦</span>{(d.badge as string) || 'Checkout in seconds'}</div>}
+    </AbsoluteFill>
+  )
+}
+
+const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI, chat: ChatUI, dashboard: DashboardUI, editor: EditorUI, checkout: CheckoutUI }
 export const ProductUIScene: React.FC<{ brief: Brief }> = ({ brief }) => { const k = brief.wow.productUI?.kind || ''; const V = PRODUCT_UI[k]; return V ? <V brief={brief} /> : <WowScene brief={brief} /> }
 
 // ── Layout dispatchers ───────────────────────────────────────────────────────

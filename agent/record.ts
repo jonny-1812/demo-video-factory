@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const BASE = path.resolve(path.dirname(__filename), '..')
 const FFMPEG = existsSync('/opt/homebrew/bin/ffmpeg') ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg'
 
-export async function recordInteraction(url: string, slug: string, outDir: string): Promise<string | null> {
+export async function recordInteraction(url: string, slug: string, outDir: string): Promise<{ rel: string; usable: boolean } | null> {
   let browser
   try {
     browser = await chromium.launch()
@@ -23,6 +23,7 @@ export async function recordInteraction(url: string, slug: string, outDir: strin
   }
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, recordVideo: { dir: outDir, size: { width: 1440, height: 900 } }, deviceScaleFactor: 1 })
   const page = await context.newPage()
+  let usable = false
   try {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }))
     await page.waitForTimeout(2200)
@@ -42,21 +43,25 @@ export async function recordInteraction(url: string, slug: string, outDir: strin
       await page.waitForTimeout(750)
     }
 
-    // click up to 4 in-product nav tabs to show the UI changing
+    // click in-product nav tabs AND product-action affordances to show the UI working
     const targets = await page.evaluate(`(() => {
-      const want = /^(inbox|my issues|issues|projects|reviews|dashboard|analytics|insights|timeline|board|calendar|overview|home|deployments|teams|cycles)$/i
+      const navRe = /^(inbox|my issues|issues|projects|reviews|dashboard|analytics|insights|timeline|board|calendar|overview|home|deployments|teams|cycles)$/i
+      const actRe = /(try it|try now|generate|upload|create|run|new |compose|build|playground|open app|launch app|live demo)/i
       const out = []
-      for (const el of document.querySelectorAll('button,[role=tab],a,[role=menuitem]')) {
-        const t = (el.textContent || '').trim()
-        if (!want.test(t)) continue
+      for (const el of document.querySelectorAll('button,[role=tab],a,[role=menuitem],[role=button]')) {
+        const t = (el.textContent || '').trim().toLowerCase()
+        if (!t || t.length > 28) continue
+        const kind = navRe.test(t) ? 'nav' : (actRe.test(t) ? 'act' : null)
+        if (!kind) continue
         const r = el.getBoundingClientRect()
         if (r.width < 8 || r.height < 8 || r.top < 0 || r.top > 880 || r.left < 0 || r.left > 1432) continue
-        out.push({ x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), t })
-        if (out.length >= 4) break
+        out.push({ x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), kind })
+        if (out.length >= 6) break
       }
       return out
-    })()`) as { x: number; y: number; t: string }[]
+    })()`) as { x: number; y: number; kind: string }[]
 
+    const before = await page.evaluate('location.pathname') as string
     for (const tgt of targets) {
       await page.mouse.move(tgt.x, tgt.y, { steps: 12 })
       await page.waitForTimeout(250)
@@ -64,6 +69,9 @@ export async function recordInteraction(url: string, slug: string, outDir: strin
       await page.waitForTimeout(1100)
     }
     await page.waitForTimeout(1200)
+    // "usable" = we genuinely navigated into the product (not still on the marketing/auth page).
+    const after = await page.evaluate('location.pathname') as string
+    usable = after !== before && !/sign|login|register|auth|pricing|contact|checkout|cart/i.test(after)
   } catch (e) {
     console.error('record: interaction error', (e as Error).message.slice(0, 80))
   }
@@ -79,8 +87,8 @@ export async function recordInteraction(url: string, slug: string, outDir: strin
     execFileSync(FFMPEG, ['-y', '-i', webm, '-r', '30', '-c:v', 'libx264', '-preset', 'fast', '-crf', '21', '-movflags', '+faststart', '-pix_fmt', 'yuv420p', mp4], { stdio: 'ignore' })
     try { unlinkSync(webm) } catch {}
     const rel = `real/${slug}/interaction.mp4`
-    console.log('✓ recorded product interaction → public/' + rel)
-    return rel
+    console.log('✓ recorded product interaction → public/' + rel + (usable ? ' (entered product)' : ' (marketing only)'))
+    return { rel, usable }
   } catch (e) {
     console.error('record: ffmpeg convert failed', (e as Error).message.slice(0, 80))
     return null

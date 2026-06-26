@@ -39,6 +39,12 @@ export function assembleTemplated(slug: string): number {
       const manData = JSON.parse(readFileSync(man, 'utf-8'))
       // Auto-attach the scanned brand logo (Reveal/Outcome wordmark) unless the brief set one.
       if (manData.logo && brief.brand && !brief.brand.logo) { brief.brand.logo = manData.logo; if (manData.logoAspect && !brief.brand.logoAspect) brief.brand.logoAspect = manData.logoAspect }
+      // Motion fallback: if the Wow has neither a coded productUI nor a video, but the
+      // scanner genuinely entered the product (usable recording), play that real motion
+      // instead of a static screenshot layout. Marketing-only scrolls are NOT auto-used.
+      if (brief.wow && !brief.wow.productUI && !brief.wow.video && manData.interactionVideo && manData.interactionVideoUsable) {
+        brief.wow.video = manData.interactionVideo
+      }
       const cands: string[] = (manData.heroCandidates || []).filter(Boolean)
       if (cands.length) {
         const used = new Set<string>()
