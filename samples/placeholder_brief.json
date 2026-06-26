@@ -1,0 +1,32 @@
+{
+  "company": "Acme",
+  "domain": "acme.com",
+  "brand": { "bg": "#0b0d12", "surface": "#161922", "text": "#f4f6f9", "muted": "#9aa1ad", "primary": "#6366f1", "accent": "#6366f1", "isDark": true },
+  "fonts": { "heading": "grotesk", "body": "inter" },
+  "pain": {
+    "headline": "Run /demo to generate a real one",
+    "sub": "This is the placeholder demo shipped with the repo.",
+    "cards": [
+      { "app": "STEP 1", "title": "Open this repo in Claude Code", "note": "no API key needed", "tag": "setup" },
+      { "app": "STEP 2", "title": "/demo https://yourproduct.com", "note": "scan → brief → render", "tag": "run" },
+      { "app": "STEP 3", "title": "Get out/demo_<slug>.mp4", "note": "custom, on-brand", "tag": "done" },
+      { "app": "NOTE", "title": "Every scene is brand-themed", "note": "from the scanned site", "tag": "auto" }
+    ],
+    "banner": "This placeholder ships so the project compiles on a fresh clone"
+  },
+  "reveal": { "tagline": "Drop any SaaS URL — get a custom product demo in minutes.", "hero": "", "layout": "fullbleed" },
+  "wow": {
+    "headline": "What the factory builds",
+    "sub": "A 4-scene arc, themed to the scanned product.",
+    "hero": "",
+    "layout": "checklist",
+    "steps": [
+      { "label": "Pain — the problem, brand-tinted", "sub": "cards · tabs · stack" },
+      { "label": "Reveal — logo + real screenshot", "sub": "browser · split · fullbleed" },
+      { "label": "Wow — the product UI, recreated", "sub": "scheduling · pipeline · forms · design" },
+      { "label": "Outcome — the headline result + CTA", "sub": "stat · metrics" }
+    ],
+    "logos": []
+  },
+  "outcome": { "stat": "/demo", "statLabel": "run it on your own product", "statSub": "Outputs a 1920×1080 MP4 with audio.", "cta": "Get started", "hero": "", "layout": "stat" }
+}

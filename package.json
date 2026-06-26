@@ -1,0 +1,28 @@
+{
+  "name": "demo-video-factory",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "playwright install chromium || true",
+    "scan": "tsx agent/scan.ts",
+    "scrape": "tsx agent/scrape.ts",
+    "music": "tsx agent/music.ts",
+    "assemble": "tsx agent/assemble-templated.ts",
+    "render": "remotion render DynamicDemo out/demo.mp4 --concurrency=4",
+    "studio": "remotion studio"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.481",
+    "@remotion/transitions": "^4.0.481",
+    "playwright": "^1.61.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0",
+    "tsx": "^4.22.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.5.0"
+  }
+}
