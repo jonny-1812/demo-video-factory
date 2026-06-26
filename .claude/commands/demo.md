@@ -65,7 +65,14 @@ Write EXACTLY this shape with Write:
 }
 ```
 
-**Pick `pain.layout`** (the problem scene adapts to the brand's colors automatically): `cards` = scattered notification chaos (default; good for "juggling many things"); `tabs` = an overflowing browser of the competitor/tool tabs over a messy spreadsheet (good when the pain is tool-sprawl or replacing named competitors — set the pain `cards[].app` to those tools); `stack` = a centered ledger tallying everything you juggle (good for cost/overhead pain). **Pick `wow.productUI.kind`** to recreate the product's real UI in-brand: `scheduling` (booking), `pipeline` (ATS/CRM/kanban), `formbuilder` (form/survey builders). Omit `productUI` to fall back to a screenshot-based wow (`layout` checklist/beforeafter/gallery).
+**Pick `pain.layout`** (the problem scene adapts to the brand's colors automatically): `cards` = scattered notification chaos (default; good for "juggling many things"); `tabs` = an overflowing browser of the competitor/tool tabs over a messy spreadsheet (good when the pain is tool-sprawl or replacing named competitors — set the pain `cards[].app` to those tools); `stack` = a centered ledger tallying everything you juggle (good for cost/overhead pain). **Pick `wow.productUI.kind` — this is the most important choice in the whole brief.** The Wow scene must SHOW the product performing its core action (input → process → output) in motion, like a screen recording of the real workflow. A static screenshot Wow reads as a *presentation*, not a demo. So **almost always pick a `productUI` kind**; only fall back to a `wow.layout` if the product genuinely fits none. Available recreated UIs:
+- `doctransform` — AI turns an upload/prompt into a generated document (lecture→notebook, PDF→summary, transcript→notes, audio→article). Data: `{ source, sourceType: 'lecture'|'pdf'|'slides', notebookTitle, sections:[{heading, points:[]}], term, badge }`. **Use this for note-takers, summarizers, AI writers, transcription, research tools.**
+- `formbuilder` — AI builds a form/survey from a prompt. Data: `{ prompt, formTitle, badge }`.
+- `designstudio` — prompt → a generated image/design + matched pros. Data: `{ prompt, image, pins, badge }`.
+- `scheduling` — booking flow (date → time → confirmed). Data: `{ host, event, duration, date, day, time }`.
+- `pipeline` — ATS/CRM/kanban board; records advance through stages. Data: `{ agent, user, badge }`.
+
+Only if NONE fit, omit `productUI` and use a `wow.layout` (`checklist` / `beforeafter` / `gallery`) — and prefer to set `wow.video` to `manifest.interactionVideo` (real motion) over a static layout if the recording shows the actual product.
 
 Rules: 4-5 pain cards; exactly 4 wow steps; 4-6 real customer logos (from the scanned site if present, else omit/empty array); `stat` is a real number ("47%", "6→1", "$2M"); `cta` is one action verb phrase. Keep copy specific to THIS product.
 

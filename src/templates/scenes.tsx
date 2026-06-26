@@ -67,7 +67,8 @@ const ctaText = (bg: string) => (lum(bg) > 0.6 ? '#0b0d11' : '#ffffff')
 // A recreated, brand-themed product UI for the Wow scene — looks like THE product
 // (its real screens, design language, colors) and animates its core workflow.
 export interface ProductUI {
-  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'kanban' | 'dashboard' | 'chat' | 'deploy'
+  // Only kinds with a real recreation in PRODUCT_UI — keep this in sync with that map.
+  kind: 'scheduling' | 'pipeline' | 'formbuilder' | 'designstudio' | 'doctransform'
   data?: Record<string, unknown>
 }
 
@@ -231,7 +232,7 @@ export const PainStack: React.FC<{ brief: Brief }> = ({ brief }) => {
 export const PainScene = PainCards
 
 // shared browser-chrome window with a real screenshot hero
-const BrowserHero: React.FC<{ brief: Brief; src: string; w: number; h: number; scale: number; opacity: number; objY?: string }> = ({ brief, src, w, h, scale, opacity, objY }) => {
+const BrowserHero: React.FC<{ brief: Brief; src: string; w: number; h: number; scale: number; opacity: number; kb?: number; panY?: number }> = ({ brief, src, w, h, scale, opacity, kb, panY }) => {
   const b = brief.brand
   return (
     <div style={{ position: 'absolute', top: '54%', left: '50%', width: w, height: h, transform: `translate(-50%,-50%) scale(${scale})`, opacity, borderRadius: 14, overflow: 'hidden', background: b.surface, border: `1px solid ${withAlpha(b.text, '1A')}`, boxShadow: `0 50px 120px rgba(0,0,0,0.7), 0 0 90px ${withAlpha(b.primary, '33')}` }}>
@@ -240,7 +241,8 @@ const BrowserHero: React.FC<{ brief: Brief; src: string; w: number; h: number; s
         <div style={{ margin: '0 auto', background: withAlpha(b.text, '10'), borderRadius: 8, padding: '5px 24px', fontSize: 14, color: b.muted }}>{brief.domain}</div>
       </div>
       <div style={{ width: '100%', height: h - 44, overflow: 'hidden', background: b.bg }}>
-        {src ? <Img src={img(src)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${objY || '38%'}`, transform: `scale(${1 + (scale - 1)})` }} /> : null}
+        {/* live Ken Burns: continuous scale + vertical pan so the product never freezes */}
+        {src ? <Img src={img(src)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${panY ?? 24}%`, transform: `scale(${kb ?? scale})`, transformOrigin: 'center top' }} /> : null}
       </div>
     </div>
   )
@@ -252,7 +254,8 @@ export const RevealScene: React.FC<{ brief: Brief }> = ({ brief }) => {
   const wm = spring({ frame: frame - 4, fps, config: { damping: 18, stiffness: 90 } })
   const win = spring({ frame: frame - 16, fps, config: { damping: 16, stiffness: 90 }, from: 0.92, to: 1 })
   const winOp = interpolate(frame, [16, 34], [0, 1], clamp)
-  const kb = interpolate(frame, [16, 300], [1.0, 1.08], clamp)
+  const kb = interpolate(frame, [16, 300], [1.02, 1.10], clamp)
+  const panY = interpolate(frame, [16, 300], [14, 42], clamp) // slow downward pan over the product
   const tag = interpolate(frame, [34, 54], [0, 1], clamp)
   const glow = interpolate(frame, [40, 90, 160], [0, 0.4, 0.24], clamp)
   return (
@@ -264,8 +267,7 @@ export const RevealScene: React.FC<{ brief: Brief }> = ({ brief }) => {
         <div style={{ height: 4, width: interpolate(frame, [40, 70], [0, 240], clamp), background: b.primary, borderRadius: 2, marginTop: 12 }} />
         <div style={{ color: b.muted, fontSize: 24, marginTop: 14, opacity: tag, textAlign: 'center', maxWidth: 1100 }}>{brief.reveal.tagline}</div>
       </div>
-      <BrowserHero brief={brief} src={brief.reveal.hero} w={1380} h={770} scale={win} opacity={winOp} objY="38%" />
-      <AbsoluteFill style={{ pointerEvents: 'none' }}><div style={{ position: 'absolute', top: '54%', left: '50%', width: 1380, height: 770, transform: `translate(-50%,-50%) scale(${kb})`, opacity: 0 }} /></AbsoluteFill>
+      <BrowserHero brief={brief} src={brief.reveal.hero} w={1380} h={770} scale={win} opacity={winOp} kb={kb} panY={panY} />
     </AbsoluteFill>
   )
 }
@@ -868,7 +870,118 @@ export const DesignStudioUI: React.FC<{ brief: Brief }> = ({ brief }) => {
   )
 }
 
-const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI }
+// DOC TRANSFORM (AI input → output) — drop a lecture/PDF → AI transcribes & analyzes
+// → a structured notebook BUILDS ITSELF section by section. The archetype for
+// summarizers / note tools / AI writers / "upload → generated document" products.
+export const DocTransformUI: React.FC<{ brief: Brief }> = ({ brief }) => {
+  const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const b = brief.brand
+  const d = (brief.wow.productUI?.data || {}) as Record<string, unknown>
+  const pr = b.primary
+  const shell = b.isDark ? b.surface : '#ffffff'
+  const shellInk = b.isDark ? b.text : '#1d1b18'
+  const shellMut = b.muted
+  const rail = b.isDark ? 'rgba(255,255,255,0.04)' : '#f6f4f0'
+  const line = b.isDark ? 'rgba(255,255,255,0.10)' : '#ece7df'
+  const head = b.isDark ? '#16130f' : '#1e1b17'
+  const paper = '#ffffff', pInk = '#1d1b18', pMut = '#8a857c', pLine = '#f0e9f0'
+  const mark = lum(pr) < 0.6 ? pr : '#e35d4b' // readable highlight on white paper
+  const source = (d.source as string) || 'Lecture 07 — Clustering.mp3'
+  const srcIcon = (d.sourceType === 'pdf' ? '📄' : d.sourceType === 'slides' ? '📊' : '🎧')
+  const title = (d.notebookTitle as string) || 'Clustering — Overview'
+  const sections = (d.sections as { heading: string; points: string[] }[]) || [
+    { heading: 'Overview', points: ['K-means partitions points into K groups', 'Hierarchical builds a cluster tree'] },
+    { heading: 'Key idea', points: ['Minimize within-cluster distance', 'Pick K with the elbow method'] },
+    { heading: 'Summary', points: ['Use K-means for speed, hierarchical for structure'] },
+  ]
+  const term = (d.term as string) || 'Elbow method'
+  const actions = ['Transcribed 52 min', 'Found 6 key topics', 'Extracted key points', 'Built study notebook']
+  const win = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 110 }, from: 0.96, to: 1 })
+  const winOp = interpolate(frame, [2, 14], [0, 1], clamp)
+  const DROP = 24, procEnd = 86
+  const dropped = frame >= DROP
+  const proc = interpolate(frame, [DROP + 4, procEnd], [0, 1], clamp)
+  const building = frame >= procEnd
+  const procOp = interpolate(frame, [procEnd, procEnd + 12], [1, 0], clamp)
+  const dir = brief.fonts.heading === 'heebo' ? 'rtl' : 'ltr'
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse 1300px 900px at 50% 32%, ${withAlpha(pr, b.isDark ? '24' : '1c')} 0%, ${b.isDark ? `rgb(${STAGE})` : '#eef0f4'} 64%)`, fontFamily: font(brief.fonts.body) }}>
+      <div style={{ position: 'absolute', top: 44, width: '100%', textAlign: 'center' }}>
+        <div style={{ color: b.isDark ? LIGHT : '#1d2533', fontSize: 38, fontWeight: 700, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [0, 20], [0, 1], clamp) }}>{brief.wow.headline}</div>
+      </div>
+      <div style={{ position: 'absolute', left: '50%', top: '55%', transform: `translate(-50%,-50%) scale(${win})`, opacity: winOp, width: 1560, height: 720, background: shell, borderRadius: 18, boxShadow: '0 50px 120px rgba(20,16,10,0.4)', overflow: 'hidden', display: 'flex', border: `1px solid ${line}` }}>
+        {/* left: upload + AI build log */}
+        <div style={{ width: 440, background: rail, borderRight: `1px solid ${line}`, padding: 30, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: pr, fontSize: 14, fontWeight: 800 }}><span style={{ fontSize: 16 }}>✦</span>{brief.company} AI</div>
+          <div style={{ color: shellMut, fontSize: 13, margin: '18px 0 10px', fontWeight: 600 }}>Drop your lecture</div>
+          <div style={{ height: 96, border: `2px dashed ${dropped ? pr : line}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: dropped ? withAlpha(pr, '12') : 'transparent', transition: 'none' }}>
+            {dropped ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, transform: `scale(${interpolate(frame, [DROP, DROP + 8], [0.8, 1], clamp)})` }}>
+                <span style={{ fontSize: 22 }}>{srcIcon}</span>
+                <span style={{ color: shellInk, fontSize: 14, fontWeight: 600 }}>{source}</span>
+              </div>
+            ) : <span style={{ color: shellMut, fontSize: 14 }}>drag a recording, PDF or slides</span>}
+          </div>
+          {/* processing meters */}
+          {dropped && !building && (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: shellInk, fontSize: 13, fontWeight: 600, marginBottom: 8 }}><span>Transcribing & analyzing…</span><span style={{ color: pr }}>{Math.round(proc * 100)}%</span></div>
+              <div style={{ height: 8, background: line, borderRadius: 5, overflow: 'hidden' }}><div style={{ height: '100%', width: `${proc * 100}%`, background: pr, borderRadius: 5 }} /></div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 14 }}>
+                {Array.from({ length: 30 }, (_, i) => <div key={i} style={{ flex: 1, height: `${20 + Math.abs(Math.sin(frame / 4 + i * 0.6)) * 80}%`, background: withAlpha(pr, '99'), borderRadius: 2 }} />)}
+              </div>
+            </div>
+          )}
+          {/* AI build log */}
+          {building && (
+            <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 13 }}>
+              {actions.map((a, i) => { const t = procEnd + 6 + i * 22; const s = spring({ frame: frame - t, fps, config: { damping: 15, stiffness: 120 } }); return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, opacity: interpolate(s, [0, 1], [0, 1], clamp), transform: `translateX(${interpolate(s, [0, 1], [-12, 0], clamp)}px)` }}>
+                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#27c285', color: '#04130b', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `scale(${interpolate(s, [0, 1], [0, 1], clamp)})` }}>✓</span>
+                  <span style={{ color: shellInk, fontSize: 15, fontWeight: 600 }}>{a}</span>
+                </div>) })}
+            </div>
+          )}
+        </div>
+        {/* right: the notebook page building itself (white paper) */}
+        <div style={{ flex: 1, position: 'relative', background: '#efe9e1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%', background: paper, borderRadius: 12, boxShadow: '0 24px 60px rgba(40,28,16,0.22)', overflow: 'hidden' }}>
+            {/* ruled grid */}
+            {Array.from({ length: 14 }, (_, r) => <div key={r} style={{ position: 'absolute', left: 0, right: 0, top: 70 + r * 44, height: 1, background: pLine }} />)}
+            {/* processing veil */}
+            {procOp > 0.01 && <div style={{ position: 'absolute', inset: 0, background: paper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: procOp, zIndex: 3 }}>
+              <div style={{ width: 54, height: 54, borderRadius: '50%', border: `4px solid ${withAlpha(mark, '33')}`, borderTopColor: mark, transform: `rotate(${frame * 14}deg)` }} />
+              <div style={{ color: pMut, fontSize: 16, marginTop: 18, fontWeight: 600 }}>Generating your notebook…</div>
+            </div>}
+            {/* the notebook content */}
+            <div dir={dir} style={{ position: 'relative', zIndex: 2, padding: '34px 44px', textAlign: dir === 'rtl' ? 'right' : 'left' }}>
+              <div style={{ color: pInk, fontSize: 30, fontWeight: 800, fontFamily: font(brief.fonts.heading), opacity: interpolate(frame, [88, 104], [0, 1], clamp), transform: `translateY(${interpolate(frame, [88, 104], [10, 0], clamp)}px)`, borderBottom: `3px solid ${mark}`, paddingBottom: 10, display: 'inline-block' }}>{title}</div>
+              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {sections.map((sec, i) => { const t = 100 + i * 40; const hs = spring({ frame: frame - t, fps, config: { damping: 15, stiffness: 120 } }); if (frame < t - 2) return null; return (
+                  <div key={i} style={{ opacity: interpolate(hs, [0, 1], [0, 1], clamp), transform: `translateY(${interpolate(hs, [0, 1], [12, 0], clamp)}px)` }}>
+                    <div style={{ color: mark, fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{sec.heading}</div>
+                    {sec.points.map((pt, j) => { const pt0 = t + 10 + j * 12; return (
+                      <div key={j} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 7, opacity: interpolate(frame, [pt0, pt0 + 12], [0, 1], clamp), flexDirection: dir === 'rtl' ? 'row-reverse' : 'row' }}>
+                        <span style={{ color: mark, fontWeight: 800, lineHeight: 1.5 }}>•</span>
+                        <span style={{ color: pInk, fontSize: 17, lineHeight: 1.5 }}>{pt}</span>
+                      </div>) })}
+                  </div>) })}
+              </div>
+              {/* highlighted key term */}
+              {frame >= 196 && <div style={{ marginTop: 22, display: 'inline-flex', alignItems: 'center', gap: 10, opacity: interpolate(frame, [196, 212], [0, 1], clamp), transform: `scale(${interpolate(frame, [196, 212], [0.9, 1], clamp)})`, background: withAlpha(mark, '1e'), border: `1.5px solid ${mark}`, borderRadius: 10, padding: '10px 16px' }}>
+                <span style={{ color: mark, fontWeight: 800, fontSize: 13 }}>★ KEY TERM</span>
+                <span style={{ color: pInk, fontSize: 16, fontWeight: 700 }}>{term}</span>
+              </div>}
+            </div>
+          </div>
+          {frame >= 234 && <div style={{ position: 'absolute', bottom: 26, right: 30, opacity: interpolate(frame, [234, 250], [0, 1], clamp), transform: `translateY(${interpolate(frame, [234, 250], [10, 0], clamp)}px)`, background: head, color: '#fff', fontSize: 15, fontWeight: 700, padding: '11px 18px', borderRadius: 11, boxShadow: '0 14px 36px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ color: pr }}>✦</span>{(d.badge as string) || 'Notebook ready in 40s'}</div>}
+        </div>
+      </div>
+      {frame < DROP + 4 && <Cursor x={470} y={interpolate(frame, [4, DROP], [360, 470], clamp)} clickFrames={[DROP]} frame={frame} color={pr} />}
+    </AbsoluteFill>
+  )
+}
+
+const PRODUCT_UI: Record<string, React.FC<{ brief: Brief }>> = { scheduling: SchedulingUI, pipeline: PipelineUI, formbuilder: FormBuilderUI, designstudio: DesignStudioUI, doctransform: DocTransformUI }
 export const ProductUIScene: React.FC<{ brief: Brief }> = ({ brief }) => { const k = brief.wow.productUI?.kind || ''; const V = PRODUCT_UI[k]; return V ? <V brief={brief} /> : <WowScene brief={brief} /> }
 
 // ── Layout dispatchers ───────────────────────────────────────────────────────
