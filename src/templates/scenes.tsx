@@ -856,7 +856,9 @@ export const DesignStudioUI: React.FC<{ brief: Brief }> = ({ brief }) => {
   const d = (brief.wow.productUI?.data || {}) as Record<string, string>
   const pr = b.primary, surf = '#ffffff', ink = '#1d2533', mut = '#8a8478', line = '#ece6dd', cream = '#f8f1e8'
   const prompt = d.prompt || 'Cozy Scandinavian living room, walnut accents'
-  const image = d.image || 'real/dexo/img_5.png'
+  // NEVER fall back to another product's real asset — that leaks a foreign
+  // screenshot. Empty => the neutral "Your design appears here" placeholder holds.
+  const image = d.image || ''
   const styles = ['Scandinavian', 'Modern', 'Japandi', 'Boho']
   const pins = (d.pins ? String(d.pins).split('|') : ['Walnut shelving', 'Linen sofa', 'Warm lighting']).slice(0, 3)
   const pinPos = [{ x: 0.24, y: 0.3 }, { x: 0.66, y: 0.5 }, { x: 0.38, y: 0.76 }]
@@ -899,8 +901,8 @@ export const DesignStudioUI: React.FC<{ brief: Brief }> = ({ brief }) => {
         {/* right: AI design canvas */}
         <div style={{ flex: 1, position: 'relative', background: '#efe7dc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'relative', width: 640, height: 600, borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 60px rgba(40,28,16,0.3)', background: cream }}>
-            {!built && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: mut, fontSize: 15, border: `2px dashed ${line}`, borderRadius: 16 }}>Your design appears here</div>}
-            {built && <>
+            {(!built || !image) && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: mut, fontSize: 15, border: `2px dashed ${line}`, borderRadius: 16 }}>Your design appears here</div>}
+            {built && image && <>
               <Img src={img(image)} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: `blur(${(1 - reveal) * 16}px) brightness(${0.7 + reveal * 0.3})`, transform: `scale(${1.06 - reveal * 0.06})` }} />
               {reveal < 1 && <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${sweep}%`, width: 80, background: `linear-gradient(90deg, transparent, ${withAlpha('#ffffff', '88')}, transparent)` }} />}
               {pins.map((pn, i) => { const t = 132 + i * 18; const s = spring({ frame: frame - t, fps, config: { damping: 14, stiffness: 130 } }); return (
