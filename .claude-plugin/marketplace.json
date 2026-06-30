@@ -1,0 +1,14 @@
+{
+  "name": "demo-video-factory",
+  "owner": { "name": "Jonathan Bar", "email": "jonathan.bar@iaig.com" },
+  "description": "SaaS URL → branded ~26s product-demo video. A Claude Code plugin built on Remotion + Playwright.",
+  "plugins": [
+    {
+      "name": "demo-video-factory",
+      "source": "./",
+      "description": "Turn any SaaS URL into a ~26s branded product-demo video — brand-matched scenes, a recreated product-UI wow scene, real screenshots, and a soundtrack.",
+      "license": "MIT",
+      "keywords": ["video", "remotion", "demo", "marketing", "product-demo", "saas"]
+    }
+  ]
+}

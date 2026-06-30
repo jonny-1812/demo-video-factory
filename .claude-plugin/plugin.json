@@ -1,0 +1,10 @@
+{
+  "name": "demo-video-factory",
+  "version": "0.1.0",
+  "description": "Turn any SaaS URL into a ~26s branded product-demo video — brand-matched scenes, a recreated product-UI 'wow' scene, real screenshots, and a soundtrack. Built on Claude Code + Remotion.",
+  "author": { "name": "Jonathan Bar", "email": "jonathan.bar@iaig.com" },
+  "homepage": "https://github.com/jonny-1812/demo-video-factory",
+  "repository": "https://github.com/jonny-1812/demo-video-factory",
+  "license": "MIT",
+  "keywords": ["video", "remotion", "demo", "marketing", "playwright", "saas", "product-demo"]
+}

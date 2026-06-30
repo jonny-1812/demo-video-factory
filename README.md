@@ -16,6 +16,29 @@ Built with **Claude Code + Remotion**. Each video is themed to *that* product �
 
 ---
 
+## Install
+
+**As a Claude Code plugin** (recommended):
+
+```
+/plugin marketplace add jonny-1812/demo-video-factory
+/plugin install demo-video-factory@demo-video-factory
+```
+
+Then run `/demo https://yourproduct.com`.
+
+**As a skill** (via [skills.sh](https://skills.sh)):
+
+```
+npx skills add jonny-1812/demo-video-factory
+```
+
+**Or clone it** (see [Setup](#setup)) and run `/demo` inside the repo.
+
+> Runs in Claude Code and renders locally — you'll need **Node 18+, ffmpeg, and Chromium** (see [Requirements](#requirements)).
+
+---
+
 ## How it works
 
 The visual quality comes from fixed, hand‑built scene **templates** (`src/templates/scenes.tsx`). The AI's only job is to write a small **`brief.json`** (data: brand, copy, layout choices) — it never writes scene code. That's what keeps every video high‑quality *and* unique.
