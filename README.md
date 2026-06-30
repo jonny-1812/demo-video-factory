@@ -25,7 +25,7 @@ Built with **Claude Code + Remotion**. Each video is themed to *that* product �
 /plugin install demo-video-factory@demo-video-factory
 ```
 
-Then run `/demo https://yourproduct.com`.
+Then run `/demo-video-factory:demo https://yourproduct.com` (plugin commands are namespaced; bare `/demo` also works if unambiguous).
 
 **As a skill** (via [skills.sh](https://skills.sh)):
 
@@ -136,7 +136,7 @@ src/
   templates/scenes.tsx   — the scene templates (Pain / Reveal / Wow / Outcome + variants)
   generated/             — composition built from the brief (placeholder committed)
   Root.tsx               — Remotion root (DynamicDemo composition)
-.claude/commands/demo.md — the /demo slash command
+commands/demo.md         — the /demo slash command (plugin)
 out/                     — rendered videos (gitignored)
 public/real/<slug>/      — scanned assets (gitignored)
 ```
@@ -145,10 +145,8 @@ public/real/<slug>/      — scanned assets (gitignored)
 
 ## Built by Corebee
 
-This tool is free and built by the team behind **[Corebee](https://corebee.ai?utm_source=demo-video-factory&utm_medium=readme&utm_campaign=oss)** — AI customer support for SaaS, **$99/mo flat** (no per‑seat fees). One script tag, answers grounded in your own docs (not hallucinated), and it escalates to you only when it matters.
+This tool is free and MIT-licensed, built by the team behind [Corebee](https://corebee.ai) (AI customer support for SaaS). The example demo above was made with it, for Corebee.
 
-Just shipped your product? When the people who watch your new demo show up with questions, Corebee answers them 24/7 — so a solo founder never drowns in support. 14‑day free trial, 30‑day money‑back, most teams go live in ~11 minutes.
+## Licenses
 
-**Set up your support agent → [corebee.ai/terminal](https://corebee.ai/terminal?utm_source=demo-video-factory&utm_medium=readme&utm_campaign=oss)**
-
-MIT License.
+This project's own code is MIT (see [`LICENSE`](./LICENSE)). It renders with **[Remotion](https://remotion.dev)**, which is **not** MIT/OSS: Remotion is free for individuals and for-profit orgs of up to 3 people, but commercial use by orgs of 4+ people — or any automated/programmatic rendering — requires a paid Remotion license (Company License, or the Automators plan). See [remotion.pro/license](https://remotion.pro/license). The MIT license here covers only this project's own code, not its dependencies.

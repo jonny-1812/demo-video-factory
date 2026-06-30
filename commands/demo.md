@@ -10,6 +10,18 @@ The brief feeds four templated scenes: PAIN → REVEAL → WOW → OUTCOME. The 
 
 ---
 
+## Step 0 — Get the engine (Bash)
+
+`/demo` runs the render engine (`agent/`, `src/`, `remotion.config.ts`). When this is installed as a plugin your current directory is your *own* project, which has none of those — so clone the engine once and **run every later step from inside it**. If you're already in a checkout, this is a no-op.
+
+```bash
+if [ -f agent/assemble-templated.ts ]; then echo "engine present"; \
+else { [ -d demo-video-factory ] || git clone https://github.com/jonny-1812/demo-video-factory; } && cd demo-video-factory && npm install; fi
+pwd   # all subsequent steps run from this directory
+```
+
+Requires Node 18+, ffmpeg, and Chromium (the `npm install` runs `playwright install chromium`).
+
 ## Step 1 — Scan + scrape (Bash)
 
 ```bash

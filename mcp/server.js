@@ -79,7 +79,7 @@ server.registerTool(
     ensureEngine();
     mkdirSync(path.join(ENGINE, "out"), { recursive: true });
     writeFileSync(path.join(ENGINE, "out", `${slug}_brief.json`), JSON.stringify(brief, null, 2));
-    if (mood !== "none") sh("npx", ["tsx", "agent/music.ts", slug, "37", mood], { timeout: 180000 });
+    if (mood !== "none") { try { sh("npx", ["tsx", "agent/music.ts", slug, "37", mood], { timeout: 180000 }); } catch { /* music is best-effort; assemble renders silent if the track is missing */ } }
     sh("npx", ["tsx", "agent/assemble-templated.ts", slug, pace], { timeout: 120000 }); // strict: validator catches bad briefs
     const out = `out/demo_${slug}.mp4`;
     sh("npx", ["remotion", "render", "DynamicDemo", out, "--concurrency=4"], { timeout: 900000 });

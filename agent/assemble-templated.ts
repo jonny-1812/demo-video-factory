@@ -63,8 +63,16 @@ export function assembleTemplated(slug: string, paceArg?: string, strict = true)
     }
     if (existsSync(man)) {
       const manData = JSON.parse(readFileSync(man, 'utf-8'))
-      // Auto-attach the scanned brand logo (Reveal/Outcome wordmark) unless the brief set one.
-      if (manData.logo && brief.brand && !brief.brand.logo) { brief.brand.logo = manData.logo; if (manData.logoAspect && !brief.brand.logoAspect) brief.brand.logoAspect = manData.logoAspect }
+      // Attach/repair the brand logo: keep the brief's logo only if its file exists,
+      // else fall back to the scanned manifest logo (handles stale paths like a .svg
+      // that's now a .png), else clear it so the Reveal/Outcome use the text wordmark.
+      if (brief.brand) {
+        const ok = (rel?: string) => !!rel && existsSync(path.join(BASE, 'public', rel))
+        if (!ok(brief.brand.logo)) {
+          if (ok(manData.logo)) { brief.brand.logo = manData.logo; if (manData.logoAspect) brief.brand.logoAspect = manData.logoAspect }
+          else { if (brief.brand.logo) console.warn(`⚠ brand.logo not found (${brief.brand.logo}) — using text wordmark`); brief.brand.logo = '' }
+        }
+      }
       // Motion fallback: if the Wow has neither a coded productUI nor a video, but the
       // scanner genuinely entered the product (usable recording), play that real motion
       // instead of a static screenshot layout. Marketing-only scrolls are NOT auto-used.
@@ -83,6 +91,16 @@ export function assembleTemplated(slug: string, paceArg?: string, strict = true)
       }
     }
   } catch { /* non-fatal */ }
+
+  // Asset-existence guard (defense in depth — runs even if the manifest was absent):
+  // a brief referencing a missing logo/hero/video must degrade gracefully, never
+  // 404-crash the render. (The prior guard only lived on an unmerged branch.)
+  const assetExists = (rel?: string) => !!rel && existsSync(path.join(BASE, 'public', rel))
+  if (brief.brand?.logo && !assetExists(brief.brand.logo)) { console.warn(`⚠ brand.logo not found (${brief.brand.logo}) — using text wordmark`); brief.brand.logo = '' }
+  for (const slot of ['reveal', 'wow', 'outcome'] as const) {
+    if (brief[slot]?.hero && !assetExists(brief[slot].hero)) { console.warn(`⚠ ${slot}.hero not found (${brief[slot].hero}) — dropping`); brief[slot].hero = '' }
+  }
+  if (brief.wow?.video && !assetExists(brief.wow.video)) { console.warn(`⚠ wow.video not found (${brief.wow.video}) — dropping`); delete brief.wow.video }
 
   const genDir = path.join(BASE, 'src', 'generated')
   mkdirSync(genDir, { recursive: true })

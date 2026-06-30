@@ -7,6 +7,10 @@ This MCP server renders demo videos **locally**. Before installing, ensure:
   - macOS: `brew install ffmpeg` · Debian/Ubuntu: `sudo apt-get install ffmpeg` · Windows: `winget install Gyan.FFmpeg`
 - **Chromium** — installed automatically via Playwright on first use.
 
+> **License note:** this server renders with [Remotion](https://remotion.dev), which is **not** OSS — free for individuals and orgs of ≤3 people, but commercial/4+-person or automated rendering requires a paid [Remotion license](https://remotion.pro/license). The project's own code is MIT.
+
+> **First-run note:** on the first tool call the server runs `git clone` of the engine repo + `npm install` (downloads Chromium) into `~/.demo-video-factory-engine`. Set `DVF_HOME` to an existing checkout to skip this.
+
 ## Add to your MCP client config
 
 ```json

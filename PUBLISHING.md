@@ -42,6 +42,8 @@ These cannot be done by an agent (npm / OAuth / web forms):
    ```bash
    npm i -g @smithery/cli
    smithery auth login
+   # build the .mcpb bundle first (it is NOT committed), then publish it:
+   npx @anthropic-ai/mcpb pack ./mcp ./mcp/server.mcpb
    smithery mcp publish ./mcp/server.mcpb -n jonny-1812/demo-video-factory
    ```
 4. **Anthropic Community plugin directory** — submit the repo URL at
@@ -64,7 +66,7 @@ Run these only once `demo-video-factory-mcp` is published to npm and smoke-teste
 - `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` — Claude Code plugin
 - `skills/demo-video-factory/SKILL.md` — the skill (skills.sh + plugin)
 - `commands/demo.md` — the `/demo` slash command (plugin)
-- `mcp/` — the MCP server (server.json, smithery.yaml, package.json, llms-install.md)
+- `mcp/` — the MCP server (server.js, server.json, package.json, llms-install.md, README.md). Note: the Smithery MCPB lane needs a `.mcpb` bundle *built* at publish time (not committed); there is no `smithery.yaml` (that's the hosted-deploy lane, which doesn't fit a local stdio tool).
 - `LICENSE` — MIT
 
 ## Verified spec notes (so future edits don't break submissions)
