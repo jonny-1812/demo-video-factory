@@ -1,0 +1,18 @@
+{
+  "name": "demo-video-factory-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for demo-video-factory: turn any SaaS URL into a ~26s branded product-demo video. Renders locally; needs Node 18+, ffmpeg, and Chromium.",
+  "type": "module",
+  "bin": { "demo-video-factory-mcp": "server.js" },
+  "mcpName": "io.github.jonny-1812/demo-video-factory",
+  "engines": { "node": ">=18" },
+  "files": ["server.js", "server.json", "llms-install.md", "README.md"],
+  "license": "MIT",
+  "homepage": "https://github.com/jonny-1812/demo-video-factory",
+  "repository": { "type": "git", "url": "git+https://github.com/jonny-1812/demo-video-factory.git" },
+  "keywords": ["mcp", "modelcontextprotocol", "remotion", "demo-video", "saas", "playwright", "video", "marketing"],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  }
+}
